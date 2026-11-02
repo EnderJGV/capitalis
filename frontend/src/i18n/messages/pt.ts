@@ -35,6 +35,7 @@ export const pt: Messages = {
     expand: 'Expandir menu',
     settings: 'Configurações',
     settingsShort: 'Ajustes',
+    overdue: 'Há faturas vencidas',
   },
   user: {
     menu: 'Menu do usuário',
@@ -71,6 +72,7 @@ export const pt: Messages = {
     emptyTitle: 'Ainda não há movimentações este mês',
     emptyDescription: 'Registre a primeira e veja aqui como seu dinheiro se distribui.',
     registerMovement: 'Registrar movimentação',
+    upcoming: 'Próximas faturas',
   },
   balance: {
     approximate: 'Aproximado: convertido para {currency} com a cotação de hoje',

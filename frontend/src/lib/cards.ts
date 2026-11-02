@@ -3,6 +3,37 @@ import type { Messages } from '@/i18n/messages/es'
 import { format } from '@/i18n/runtime'
 import { formatDate, todayISO } from '@/utils/format'
 
+/** Una factura entra en el aviso si vence en este plazo (o ya venció). */
+export const DUE_SOON_DAYS = 7
+
+export interface StatementAlert {
+  card: CreditCard
+  statement: Statement
+  overdue: boolean
+}
+
+/**
+ * La factura que hay que pagar de cada tarjeta, si está vencida o vence en los próximos 7 días.
+ * `next_due` es la cerrada más vieja con saldo; si no hay, se mira la abierta.
+ */
+export function statementAlerts(cards: CreditCard[]): StatementAlert[] {
+  const alerts: StatementAlert[] = []
+  for (const card of cards) {
+    const statement = card.next_due ?? card.current_statement
+    if (Number(statement.pending) <= 0) continue
+    const days = daysUntil(statement.due_date)
+    const overdue = statement.status === 'overdue' || days < 0
+    if (!overdue && days > DUE_SOON_DAYS) continue
+    alerts.push({ card, statement, overdue })
+  }
+  return alerts.sort((a, b) => a.statement.due_date.localeCompare(b.statement.due_date))
+}
+
+/** Hay alguna factura vencida (punto rojo del menú). */
+export function hasOverdueStatement(cards: Pick<CreditCard, 'next_due'>[]): boolean {
+  return cards.some((card) => card.next_due?.status === 'overdue')
+}
+
 /** Días desde hoy hasta una fecha ISO (negativo si ya pasó). */
 export function daysUntil(iso: string, today = todayISO()): number {
   const [y, m, d] = iso.split('-').map(Number)

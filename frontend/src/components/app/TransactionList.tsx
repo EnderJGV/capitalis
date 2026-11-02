@@ -122,6 +122,7 @@ export function TransactionList({
                           {item.tx.category?.name ?? t.common.noCategory}
                           {item.tx.is_refund && ` · ${t.editor.refundLabel}`}
                           {item.tx.account && !accountId && ` · ${item.tx.account.name}`}
+                          {item.tx.account?.card?.last4 && ` · •••• ${item.tx.account.card.last4}`}
                         </span>
                       </span>
                       <span

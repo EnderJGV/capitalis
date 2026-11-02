@@ -22,8 +22,10 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n/I18nProvider'
+import { hasOverdueStatement } from '@/lib/cards'
 import { TYPE_ICON } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { cardsApi } from '@/services/api'
 import { BrandBackdrop } from './BrandBackdrop'
 import { Logo } from './Logo'
 import { TransactionEditorProvider, useTransactionEditor } from './TransactionEditorProvider'
@@ -90,22 +92,51 @@ export function AppShell() {
 
   return (
     <TransactionEditorProvider>
-      <div className="min-h-dvh">
-        <Sidebar expanded={expanded} canToggle={isDesktop} onToggle={toggleCollapsed} />
-        <MobileTopBar />
-        <main
-          className={cn(
-            'transition-[padding] duration-200 ease-out motion-reduce:transition-none sm:pl-[72px]',
-            expanded && 'sm:pl-64',
-          )}
-        >
-          <div className="mx-auto w-full max-w-[1440px] px-4 pt-4 pb-28 sm:px-6 sm:pt-6 sm:pb-10 xl:px-10">
-            <Outlet />
-          </div>
-        </main>
-        <BottomNav />
-      </div>
+      <Shell expanded={expanded} canToggle={isDesktop} onToggle={toggleCollapsed} />
     </TransactionEditorProvider>
+  )
+}
+
+/** Punto rojo del menú: hay alguna factura vencida. Se actualiza al guardar un pago o una compra. */
+function useHasOverdue(): boolean {
+  const { revision } = useTransactionEditor()
+  const [overdue, setOverdue] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    cardsApi
+      .list()
+      .then((cards) => {
+        if (!cancelled) setOverdue(hasOverdueStatement(cards))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [revision])
+
+  return overdue
+}
+
+function Shell({ expanded, canToggle, onToggle }: { expanded: boolean; canToggle: boolean; onToggle: () => void }) {
+  const overdue = useHasOverdue()
+
+  return (
+    <div className="min-h-dvh">
+      <Sidebar expanded={expanded} canToggle={canToggle} onToggle={onToggle} overdue={overdue} />
+      <MobileTopBar />
+      <main
+        className={cn(
+          'transition-[padding] duration-200 ease-out motion-reduce:transition-none sm:pl-[72px]',
+          expanded && 'sm:pl-64',
+        )}
+      >
+        <div className="mx-auto w-full max-w-[1440px] px-4 pt-4 pb-28 sm:px-6 sm:pt-6 sm:pb-10 xl:px-10">
+          <Outlet />
+        </div>
+      </main>
+      <BottomNav overdue={overdue} />
+    </div>
   )
 }
 
@@ -113,10 +144,11 @@ interface SidebarProps {
   expanded: boolean
   canToggle: boolean
   onToggle: () => void
+  overdue: boolean
 }
 
 /** Barra lateral: expandida (256px) o contraída a íconos (72px). Oculta en móvil. */
-function Sidebar({ expanded, canToggle, onToggle }: SidebarProps) {
+function Sidebar({ expanded, canToggle, onToggle, overdue }: SidebarProps) {
   const { t } = useI18n()
   const { openNew, openTransfer } = useTransactionEditor()
   const shortcut = IS_MAC ? '⌘B' : 'Ctrl+B'
@@ -194,7 +226,11 @@ function Sidebar({ expanded, canToggle, onToggle }: SidebarProps) {
       <nav aria-label={t.nav.main} className={cn('relative mt-6 flex flex-1 flex-col gap-1', expanded ? 'px-4' : 'px-3')}>
         {expanded && <p className="mb-1 px-3 type-caption font-semibold text-sidebar-foreground/70">{t.nav.menu}</p>}
         {NAV.map((item) => (
-          <SidebarTooltip key={item.to} label={t.nav[item.key]} show={!expanded}>
+          <SidebarTooltip
+            key={item.to}
+            label={overdue && item.key === 'summary' ? `${t.nav[item.key]}. ${t.nav.overdue}` : t.nav[item.key]}
+            show={!expanded}
+          >
             {/* className como string: el Slot del Tooltip no admite la función de NavLink; el activo se marca con aria-current. */}
             <NavLink
               to={item.to}
@@ -214,8 +250,9 @@ function Sidebar({ expanded, canToggle, onToggle }: SidebarProps) {
                   expanded ? '-left-4' : '-left-3',
                 )}
               />
-              <item.icon className="size-5 shrink-0" strokeWidth={1.75} />
+              <NavIcon icon={item.icon} dot={overdue && item.key === 'summary'} ring="ring-sidebar" />
               {expanded ? t.nav[item.key] : <span className="sr-only">{t.nav[item.key]}</span>}
+              {overdue && item.key === 'summary' && <span className="sr-only">. {t.nav.overdue}</span>}
             </NavLink>
           </SidebarTooltip>
         ))}
@@ -265,7 +302,7 @@ function MobileTopBar() {
   )
 }
 
-function BottomNav() {
+function BottomNav({ overdue }: { overdue: boolean }) {
   const { t } = useI18n()
   const [home, movements, accounts, , settings] = NAV
   return (
@@ -273,7 +310,7 @@ function BottomNav() {
       aria-label={t.nav.main}
       className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-card pb-[env(safe-area-inset-bottom)] sm:hidden"
     >
-      <BottomNavLink item={home} />
+      <BottomNavLink item={home} overdue={overdue} />
       <BottomNavLink item={movements} />
       <div className="flex items-center justify-center">
         <QuickAddMenu />
@@ -284,8 +321,9 @@ function BottomNav() {
   )
 }
 
-function BottomNavLink({ item }: { item: NavItem }) {
+function BottomNavLink({ item, overdue = false }: { item: NavItem; overdue?: boolean }) {
   const { t } = useI18n()
+  const showDot = overdue && item.key === 'summary'
   return (
     <NavLink
       to={item.to}
@@ -299,10 +337,23 @@ function BottomNavLink({ item }: { item: NavItem }) {
     >
       {/* Píldora detrás del ícono activo, al estilo de las apps nativas */}
       <span className="flex h-7 w-14 items-center justify-center rounded-full transition-colors group-aria-[current=page]:bg-accent">
-        <item.icon className="size-5" strokeWidth={1.75} />
+        <NavIcon icon={item.icon} dot={showDot} ring="ring-card" />
       </span>
-      <span className="max-w-full truncate px-1">{item.key === 'settings' ? t.nav.settingsShort : t.nav[item.key]}</span>
+      <span className="max-w-full truncate px-1">
+        {item.key === 'settings' ? t.nav.settingsShort : t.nav[item.key]}
+        {showDot && <span className="sr-only">. {t.nav.overdue}</span>}
+      </span>
     </NavLink>
+  )
+}
+
+/** Ícono de navegación, con un punto rojo si hay facturas vencidas. */
+function NavIcon({ icon: Icon, dot, ring }: { icon: LucideIcon; dot: boolean; ring: string }) {
+  return (
+    <span className="relative shrink-0">
+      <Icon className="size-5" strokeWidth={1.75} />
+      {dot && <span aria-hidden className={cn('absolute -top-0.5 -right-1 size-2 rounded-full bg-expense ring-2', ring)} />}
+    </span>
   )
 }
 

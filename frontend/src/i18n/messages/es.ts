@@ -37,6 +37,7 @@ export const es = {
     expand: 'Expandir menú',
     settings: 'Configuración',
     settingsShort: 'Ajustes',
+    overdue: 'Hay facturas vencidas',
   },
   user: {
     menu: 'Menú de usuario',
@@ -73,6 +74,7 @@ export const es = {
     emptyTitle: 'Todavía no hay movimientos este mes',
     emptyDescription: 'Registra el primero y verás aquí cómo se reparte tu dinero.',
     registerMovement: 'Registrar movimiento',
+    upcoming: 'Próximas facturas',
   },
   balance: {
     approximate: 'Aproximado: convertido a {currency} con la cotización de hoy',

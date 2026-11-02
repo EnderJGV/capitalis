@@ -35,6 +35,7 @@ export const en: Messages = {
     expand: 'Expand menu',
     settings: 'Settings',
     settingsShort: 'Settings',
+    overdue: 'There are overdue statements',
   },
   user: {
     menu: 'User menu',
@@ -71,6 +72,7 @@ export const en: Messages = {
     emptyTitle: 'No transactions this month yet',
     emptyDescription: 'Add the first one and see here how your money is split.',
     registerMovement: 'Add transaction',
+    upcoming: 'Upcoming statements',
   },
   balance: {
     approximate: "Approximate: converted to {currency} at today's rate",

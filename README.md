@@ -1,6 +1,6 @@
 # Capitalis — gestión de finanzas personales (MVP)
 
-Registro/login, categorías, ingresos y gastos, y un resumen mensual.
+Registro/login, categorías, cuentas, tarjetas de crédito, ingresos y gastos, y un resumen mensual.
 
 - **DB**: PostgreSQL 16 en Docker (es lo único que corre en Docker)
 - **Backend**: Python + FastAPI + SQLAlchemy, con Clean Architecture
@@ -59,6 +59,15 @@ cd backend
 - **Cotizaciones**: el backend las pide a [currency-api](https://github.com/fawazahmed0/exchange-api) (gratuita, sin clave) y las guarda por día en `exchange_rates`. Se usan para sugerir el tipo de cambio y para convertir los totales del Resumen a la **moneda principal** del usuario (marcados con ≈).
 - **Catálogo de instituciones** (`frontend/src/lib/institutions.ts`): bancos de Brasil, México, Venezuela, Colombia, EE. UU., Argentina, Chile, Perú y Europa, y billeteras como Wise o Payoneer. Los logos se piden en tiempo real por dominio (solo se envía el dominio del banco); si no hay logo, se muestra un monograma con el color de la marca.
 
+## Tarjetas de crédito
+
+- Una tarjeta es una cuenta especial (`kind = credit_card`): su saldo es la deuda (negativo) y resta del patrimonio. Solo se guardan los últimos 4 dígitos, nunca el número completo ni el código de seguridad.
+- Las compras cuentan en la fecha de compra, en su categoría. Pagar la factura es una transferencia de una cuenta a la tarjeta y no vuelve a contar como gasto.
+- Las facturas no se guardan: se calculan con los días de cierre y vencimiento (abierta, cerrada, pago parcial, vencida, pagada o a favor). Si el día no existe en el mes, se usa el último.
+- Compras en cuotas (2 a 48): cada cuota entra en su mes y en su factura. Compras en otra moneda guardan el monto original, la moneda y el tipo de cambio; la tarifa internacional es un gasto aparte, enlazado a la compra.
+- Un reembolso en la tarjeta reduce la deuda y resta del gasto de su categoría (no cuenta como ingreso).
+- El Resumen avisa de las facturas que vencen en 7 días (ámbar) o ya vencieron (rojo), con botón para pagar. Si hay alguna vencida, el menú muestra un punto rojo.
+
 ## Arquitectura del backend (`backend/app`)
 
 Las dependencias apuntan siempre hacia adentro: `presentation → application → domain` e `infrastructure → application/domain`.
@@ -84,6 +93,9 @@ Las dependencias apuntan siempre hacia adentro: `presentation → application �
 
 ## Pendiente / siguientes pasos
 
-- Conectar cuentas automáticamente con los bancos (hoy se registran a mano).
+- Conectar cuentas automáticamente con los bancos (Open Finance) e importar extractos (OFX/CSV/PDF).
+- Intereses del rotativo y pago mínimo calculados automáticamente (hoy se registran como un gasto).
+- Avisos de vencimiento por e-mail o push.
+- Tarjetas adicionales y tarjetas con dos monedas.
 - Más tests (repositorios SQL con una base de prueba).
 - Dockerizar backend y frontend cuando haga falta.
