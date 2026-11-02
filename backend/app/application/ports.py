@@ -5,6 +5,7 @@ from typing import Callable, Protocol
 from ..domain.repositories import (
     AccountRepository,
     CategoryRepository,
+    InstallmentPlanRepository,
     RateRepository,
     ReportRepository,
     TransactionRepository,
@@ -18,6 +19,7 @@ class UnitOfWork(Protocol):
     categories: CategoryRepository
     accounts: AccountRepository
     transactions: TransactionRepository
+    installment_plans: InstallmentPlanRepository
     transfers: TransferRepository
     rates: RateRepository
     reports: ReportRepository

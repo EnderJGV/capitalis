@@ -13,6 +13,7 @@ from ...domain.entities import (
     CategoryTotal,
     CreditCard,
     CurrencyAmount,
+    InstallmentPlan,
     Transaction,
     Transfer,
     TxType,
@@ -24,6 +25,7 @@ from .models import (
     CategoryModel,
     CreditCardModel,
     ExchangeRateModel,
+    InstallmentPlanModel,
     TransactionModel,
     TransferModel,
     UserModel,
@@ -66,6 +68,19 @@ def _account(m: AccountModel, balance: Decimal | None = None) -> Account:
     )
 
 
+def _plan(m: InstallmentPlanModel) -> InstallmentPlan:
+    return InstallmentPlan(
+        id=m.id,
+        user_id=m.user_id,
+        account_id=m.account_id,
+        total_amount=m.total_amount,
+        installments=m.installments,
+        purchase_date=m.purchase_date,
+        description=m.description,
+        category_id=m.category_id,
+    )
+
+
 def _transaction(m: TransactionModel) -> Transaction:
     return Transaction(
         id=m.id,
@@ -87,6 +102,7 @@ def _transaction(m: TransactionModel) -> Transaction:
         original_currency=m.original_currency,
         exchange_rate=m.exchange_rate,
         parent_id=m.parent_id,
+        installment_plan=_plan(m.installment_plan) if m.installment_plan else None,
     )
 
 
@@ -314,7 +330,9 @@ class SqlTransactionRepository:
 
     def _query(self):
         return select(TransactionModel).options(
-            joinedload(TransactionModel.category), joinedload(TransactionModel.account)
+            joinedload(TransactionModel.category),
+            joinedload(TransactionModel.account),
+            joinedload(TransactionModel.installment_plan),
         )
 
     def _owned(self, user_id: int, transaction_id: int) -> TransactionModel | None:
@@ -369,6 +387,58 @@ class SqlTransactionRepository:
     def delete(self, user_id: int, transaction_id: int) -> None:
         m = self._owned(user_id, transaction_id)
         if m:
+            self._s.delete(m)
+            self._s.flush()
+
+
+class SqlInstallmentPlanRepository:
+    def __init__(self, session: Session):
+        self._s = session
+
+    def _owned(self, user_id: int, plan_id: int) -> InstallmentPlanModel | None:
+        return self._s.scalar(
+            select(InstallmentPlanModel).where(InstallmentPlanModel.id == plan_id, InstallmentPlanModel.user_id == user_id)
+        )
+
+    def get(self, user_id: int, plan_id: int) -> InstallmentPlan | None:
+        m = self._owned(user_id, plan_id)
+        return _plan(m) if m else None
+
+    def list(self, user_id: int, account_id: int) -> list[InstallmentPlan]:
+        rows = self._s.scalars(
+            select(InstallmentPlanModel)
+            .where(InstallmentPlanModel.user_id == user_id, InstallmentPlanModel.account_id == account_id)
+            .order_by(InstallmentPlanModel.purchase_date.desc(), InstallmentPlanModel.id.desc())
+        )
+        return [_plan(m) for m in rows]
+
+    def add(self, plan: InstallmentPlan) -> InstallmentPlan:
+        m = InstallmentPlanModel(user_id=plan.user_id)
+        self._fields(m, plan)
+        self._s.add(m)
+        self._s.flush()
+        return _plan(m)
+
+    def update(self, plan: InstallmentPlan) -> InstallmentPlan:
+        m = self._owned(plan.user_id, plan.id)
+        self._fields(m, plan)
+        self._s.flush()
+        return _plan(m)
+
+    @staticmethod
+    def _fields(m: InstallmentPlanModel, plan: InstallmentPlan) -> None:
+        m.account_id, m.category_id, m.description = plan.account_id, plan.category_id, plan.description
+        m.total_amount, m.installments, m.purchase_date = plan.total_amount, plan.installments, plan.purchase_date
+
+    def delete_installments(self, plan_id: int) -> None:
+        self._s.execute(delete(TransactionModel).where(TransactionModel.installment_plan_id == plan_id))
+        self._s.flush()
+
+    def delete(self, user_id: int, plan_id: int) -> None:
+        m = self._owned(user_id, plan_id)
+        if m:
+            # Las cuotas se borran con el plan (ON DELETE CASCADE); se hace explícito por claridad.
+            self.delete_installments(plan_id)
             self._s.delete(m)
             self._s.flush()
 

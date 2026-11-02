@@ -20,6 +20,24 @@ export function dueLabel(t: Messages, statement: Statement): string {
   return format(t.cards.due, { date: formatDate(statement.due_date) })
 }
 
+function dayInMonth(year: number, month: number, day: number): Date {
+  const last = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return new Date(Date.UTC(year, month - 1, Math.min(day, last)))
+}
+
+/**
+ * Mes (YYYY-MM) del vencimiento de la factura en la que entra un gasto de ese día; igual que el
+ * servidor: el día de cierre entra en esa factura y, si el mes es más corto, cierra el último día.
+ */
+export function statementDueMonth(iso: string, closingDay: number, dueDay: number): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  let closing = dayInMonth(y, m, closingDay)
+  if (Date.UTC(y, m - 1, d) > closing.getTime()) closing = dayInMonth(y, m + 1, closingDay)
+  const offset = dueDay > closingDay ? 0 : 1
+  const due = dayInMonth(closing.getUTCFullYear(), closing.getUTCMonth() + 1 + offset, dueDay)
+  return `${due.getUTCFullYear()}-${String(due.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
 /** El día siguiente al cierre: lo que se compra ese día entra en la factura del mes siguiente. */
 export function bestPurchaseDay(closingDay: number): number {
   return closingDay >= 31 ? 1 : closingDay + 1

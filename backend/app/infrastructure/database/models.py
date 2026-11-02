@@ -179,3 +179,4 @@ class TransactionModel(Base):
 
     category: Mapped[CategoryModel | None] = relationship()
     account: Mapped[AccountModel] = relationship()
+    installment_plan: Mapped[InstallmentPlanModel | None] = relationship()

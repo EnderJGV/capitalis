@@ -201,6 +201,11 @@ export interface Transaction {
   account: AccountRef | null
   /** Si no es null, es la comisión de esa transferencia (se edita desde la transferencia). */
   transfer_id: number | null
+  /** Cuota `installment_number` de `installment_count` de una compra en cuotas. */
+  installment_number: number | null
+  installment_count: number | null
+  /** La compra entera: editar o borrar una cuota cambia todas. */
+  installment_plan: { id: number; total_amount: string; installments: number; purchase_date: string } | null
 }
 
 export interface TransactionInput {
@@ -210,6 +215,24 @@ export interface TransactionInput {
   date: string
   category_id: number | null
   account_id: number | null
+  /** Compra en cuotas (solo gastos de tarjeta): `amount` es el total. */
+  installments?: number | null
+}
+
+/** Compra en cuotas que todavía tiene cuotas por cargar. */
+export interface InstallmentProgress {
+  id: number
+  description: string
+  category_id: number | null
+  total_amount: string
+  installments: number
+  purchase_date: string
+  installment_amount: string
+  /** Cuotas ya cargadas (hasta hoy). */
+  charged: number
+  /** Lo que falta cargar en las facturas siguientes. */
+  remaining: string
+  next_date: string | null
 }
 
 export interface TransactionFilters {

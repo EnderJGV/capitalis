@@ -118,6 +118,8 @@ class Transaction:
     exchange_rate: Decimal | None = None
     #: Si no es None, este gasto es la tarifa internacional (IOF) de esa compra.
     parent_id: int | None = None
+    #: La compra en cuotas a la que pertenece (solo viene al leer).
+    installment_plan: "InstallmentPlan | None" = None
 
     def __post_init__(self):
         if self.amount <= 0:

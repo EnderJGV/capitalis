@@ -4,7 +4,9 @@ import {
   CalendarIcon,
   ArrowLeftRightIcon,
   CheckIcon,
+  LayersIcon,
   Loader2Icon,
+  MinusIcon,
   PlusIcon,
   TagIcon,
   TextIcon,
@@ -30,10 +32,13 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n/I18nProvider'
+import { format } from '@/i18n/runtime'
+import { statementDueMonth } from '@/lib/cards'
 import { TYPE_ICON } from '@/lib/icons'
+import { cn } from '@/lib/utils'
 import type { Account, Category, Transaction, TxType } from '@/domain/types'
 import { categoriesApi, transactionsApi } from '@/services/api'
-import { toISODate, todayISO } from '@/utils/format'
+import { monthLabel, toISODate, todayISO, useMoney } from '@/utils/format'
 import { AmountInput, amountToInput, parseAmount } from './AmountInput'
 import { AccountPicker } from './AccountPicker'
 import { CategoryAvatar } from './CategoryAvatar'
@@ -154,9 +159,15 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
     return usable.find((a) => a.id === last)?.id ?? usable[0]?.id ?? null
   })
   const account = accounts.find((a) => a.id === accountId)
+  // Una cuota se edita como la compra entera: monto total, fecha de compra y número de cuotas.
+  const plan = initial?.installment_plan
   const [type, setType] = useState<TxType>(initial?.type ?? 'expense')
-  const [amount, setAmount] = useState(initial ? amountToInput(initial.amount) : '')
-  const [date, setDate] = useState(initial?.date ?? todayISO())
+  const [amount, setAmount] = useState(initial ? amountToInput(plan?.total_amount ?? initial.amount) : '')
+  const [date, setDate] = useState(plan?.purchase_date ?? initial?.date ?? todayISO())
+  /** 1 = un solo pago. */
+  const [installments, setInstallments] = useState(plan?.installments ?? 1)
+  const canSplit = account?.kind === 'credit_card' && type === 'expense'
+  const split = canSplit && installments > 1
   const [categoryId, setCategoryId] = useState<number | null>(initial?.category_id ?? null)
   const [description, setDescription] = useState(initial?.description ?? '')
   const [error, setError] = useState('')
@@ -189,6 +200,7 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
       description: description.trim(),
       category_id: categoryId,
       account_id: accountId,
+      installments: split ? installments : null,
     }
     try {
       if (initial) await transactionsApi.update(initial.id, data)
@@ -214,6 +226,12 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
     <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
       {/* Solo los campos se desplazan; el pie con Guardar queda siempre visible. */}
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
+        {plan && (
+          <p className="flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2 type-caption text-muted-foreground">
+            <LayersIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            {format(t.editor.wholePurchase, { n: plan.installments })}
+          </p>
+        )}
         <ToggleGroup
           type="single"
           variant="outline"
@@ -251,7 +269,7 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
         <div className="flex flex-col gap-2">
           <Label htmlFor="tx-amount">
             <BanknoteIcon className="size-4 text-muted-foreground" />
-            {t.editor.amount}
+            {split ? t.editor.totalAmount : t.editor.amount}
           </Label>
           <AmountInput
             id="tx-amount"
@@ -261,6 +279,15 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
             onChange={setAmount}
             aria-invalid={!!error && !parseAmount(amount)}
           />
+          {canSplit && account?.card && (
+            <InstallmentsField
+              value={installments}
+              onChange={setInstallments}
+              total={parseAmount(amount)}
+              currency={account.currency}
+              dueMonth={statementDueMonth(date, account.card.closing_day, account.card.due_day)}
+            />
+          )}
         </div>
 
         <div className="flex flex-col gap-4">
@@ -356,7 +383,9 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
             <AlertDialogContent size="sm">
               <AlertDialogHeader>
                 <AlertDialogTitle>{t.editor.deleteTitle}</AlertDialogTitle>
-                <AlertDialogDescription>{t.common.irreversible}</AlertDialogDescription>
+                <AlertDialogDescription>
+                  {plan ? format(t.editor.deleteInstallments, { n: plan.installments }) : t.common.irreversible}
+                </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
@@ -376,5 +405,95 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
         </Button>
       </SheetFooter>
     </form>
+  )
+}
+
+const MAX_INSTALLMENTS = 48
+
+/** "En cuotas": interruptor, número de cuotas y "12× R$ 100,00 · primera en la factura de diciembre". */
+function InstallmentsField({
+  value,
+  onChange,
+  total,
+  currency,
+  dueMonth,
+}: {
+  value: number
+  onChange: (n: number) => void
+  total: string | null
+  currency: string
+  /** Mes del vencimiento de la factura en la que entra la primera cuota. */
+  dueMonth: string
+}) {
+  const { t } = useI18n()
+  const money = useMoney()
+  const on = value > 1
+  const clamp = (n: number) => Math.min(MAX_INSTALLMENTS, Math.max(2, n))
+  // Igual que el servidor: cuotas iguales y los centavos sobrantes en la primera.
+  const base = total ? Math.floor((Number(total) * 100) / value) / 100 : null
+
+  return (
+    <div className={cn('mt-1 flex flex-col gap-3 rounded-lg border px-3 py-2.5 transition-colors', on && 'border-primary/40 bg-primary/5')}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0">
+          <span id="tx-installments-label" className="flex items-center gap-2 type-meta font-medium">
+            <LayersIcon className="size-4 text-muted-foreground" aria-hidden />
+            {t.editor.installments}
+          </span>
+          {!on && <span className="block type-caption text-muted-foreground">{t.editor.installmentsHint}</span>}
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-labelledby="tx-installments-label"
+          onClick={() => onChange(on ? 1 : 2)}
+          className={cn(
+            'relative h-6 w-11 shrink-0 rounded-full transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40',
+            on ? 'bg-primary' : 'bg-muted-foreground/30',
+          )}
+        >
+          <span
+            className={cn(
+              'absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform',
+              on && 'translate-x-5',
+            )}
+          />
+        </button>
+      </div>
+
+      {on && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="flex items-center rounded-lg border bg-card" role="group" aria-label={t.editor.installmentsCount}>
+            <Button type="button" variant="ghost" size="icon" aria-label={t.editor.fewer} disabled={value <= 2} onClick={() => onChange(clamp(value - 1))}>
+              <MinusIcon />
+            </Button>
+            <input
+              id="tx-installments"
+              inputMode="numeric"
+              aria-label={t.editor.installmentsCount}
+              className="tabular w-10 bg-transparent text-center font-semibold outline-none"
+              value={value}
+              onChange={(e) => {
+                const n = Number(e.target.value.replace(/\D/g, ''))
+                if (n) onChange(clamp(n))
+              }}
+            />
+            <Button type="button" variant="ghost" size="icon" aria-label={t.editor.more} disabled={value >= MAX_INSTALLMENTS} onClick={() => onChange(clamp(value + 1))}>
+              <PlusIcon />
+            </Button>
+          </div>
+          <p className="min-w-0 flex-1 type-caption text-muted-foreground" aria-live="polite">
+            {base !== null && base > 0 && (
+              <span className="tabular font-semibold text-foreground">
+                {format(t.editor.installmentsPreview, { n: value, amount: money(base, currency) })}
+              </span>
+            )}
+            {base !== null && base > 0 && ' · '}
+            {format(t.editor.firstIn, { month: monthLabel(dueMonth) })}
+          </p>
+        </div>
+      )}
+    </div>
   )
 }

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .repositories import (
     SqlAccountRepository,
     SqlCategoryRepository,
+    SqlInstallmentPlanRepository,
     SqlRateRepository,
     SqlReportRepository,
     SqlTransactionRepository,
@@ -23,6 +24,7 @@ class SqlAlchemyUnitOfWork:
         self.categories = SqlCategoryRepository(self.session)
         self.accounts = SqlAccountRepository(self.session)
         self.transactions = SqlTransactionRepository(self.session)
+        self.installment_plans = SqlInstallmentPlanRepository(self.session)
         self.transfers = SqlTransferRepository(self.session)
         self.rates = SqlRateRepository(self.session)
         self.reports = SqlReportRepository(self.session)

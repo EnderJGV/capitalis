@@ -112,6 +112,11 @@ export function TransactionList({
                           {item.tx.description ||
                             item.tx.category?.name ||
                             (item.tx.type === 'income' ? t.common.income : t.common.expense)}
+                          {item.tx.installment_count && (
+                            <span className="tabular ml-1.5 rounded-md bg-muted px-1.5 py-0.5 align-middle type-caption font-semibold text-muted-foreground">
+                              {item.tx.installment_number}/{item.tx.installment_count}
+                            </span>
+                          )}
                         </span>
                         <span className="block truncate type-meta text-muted-foreground">
                           {item.tx.category?.name ?? t.common.noCategory}

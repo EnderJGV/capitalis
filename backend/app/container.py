@@ -12,6 +12,7 @@ from .application.cards import (
 )
 from .application.categories import CreateCategory, DeleteCategory, ListCategories, UpdateCategory
 from .application.dashboard import GetSummary
+from .application.installments import ListInstallments
 from .application.rates import CurrencyConverter, GetRate
 from .application.transactions import CreateTransaction, DeleteTransaction, ListTransactions, UpdateTransaction
 from .application.transfers import CreateTransfer, DeleteTransfer, ListTransfers, UpdateTransfer
@@ -53,6 +54,7 @@ class Container:
         self.create_card = CreateCreditCard(uow_factory)
         self.update_card = UpdateCreditCard(uow_factory)
         self.delete_card = DeleteCreditCard(uow_factory)
+        self.list_installments = ListInstallments(uow_factory)
 
         self.list_transfers = ListTransfers(uow_factory)
         self.create_transfer = CreateTransfer(uow_factory)

@@ -10,6 +10,7 @@ import type {
   CategoryInput,
   CreditCard,
   Currency,
+  InstallmentProgress,
   Rate,
   Statement,
   Summary,
@@ -66,6 +67,8 @@ export const cardsApi = {
   get: (id: number) => http<CreditCard>(`/cards/${id}`),
   /** Todas las facturas, de la más vieja a la más nueva (la abierta siempre aparece). */
   statements: (id: number) => http<Statement[]>(`/cards/${id}/statements`),
+  /** Compras en cuotas en curso. */
+  installments: (id: number) => http<InstallmentProgress[]>(`/cards/${id}/installments`),
   create: (data: CardInput) => http<CreditCard>('/cards', { method: 'POST', body: data }),
   update: (id: number, data: CardInput) => http<CreditCard>(`/cards/${id}`, { method: 'PUT', body: data }),
   remove: (id: number) => http<void>(`/cards/${id}`, { method: 'DELETE' }),

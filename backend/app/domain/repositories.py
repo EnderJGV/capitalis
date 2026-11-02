@@ -4,7 +4,17 @@ from datetime import date
 from decimal import Decimal
 from typing import Protocol
 
-from .entities import Account, Category, CategoryTotal, CurrencyAmount, Transaction, Transfer, TxType, User
+from .entities import (
+    Account,
+    Category,
+    CategoryTotal,
+    CurrencyAmount,
+    InstallmentPlan,
+    Transaction,
+    Transfer,
+    TxType,
+    User,
+)
 
 
 class UserRepository(Protocol):
@@ -56,6 +66,20 @@ class TransactionRepository(Protocol):
     def add(self, transaction: Transaction) -> Transaction: ...
     def update(self, transaction: Transaction) -> Transaction: ...
     def delete(self, user_id: int, transaction_id: int) -> None: ...
+
+
+class InstallmentPlanRepository(Protocol):
+    def get(self, user_id: int, plan_id: int) -> InstallmentPlan | None: ...
+    def list(self, user_id: int, account_id: int) -> list[InstallmentPlan]: ...
+    def add(self, plan: InstallmentPlan) -> InstallmentPlan: ...
+    def update(self, plan: InstallmentPlan) -> InstallmentPlan: ...
+    def delete_installments(self, plan_id: int) -> None:
+        """Borra las cuotas (movimientos) del plan, para volver a generarlas."""
+        ...
+
+    def delete(self, user_id: int, plan_id: int) -> None:
+        """Borra el plan y todas sus cuotas."""
+        ...
 
 
 class TransferRepository(Protocol):

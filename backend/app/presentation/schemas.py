@@ -176,6 +176,16 @@ class TransactionIn(BaseModel):
     date: date
     category_id: int | None = None
     account_id: int | None = None
+    #: Compra en cuotas (solo gastos de tarjeta): `amount` es el total y se reparte en N meses.
+    installments: int | None = Field(default=None, ge=1, le=48)
+
+
+class InstallmentPlanRef(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    total_amount: Decimal
+    installments: int
+    purchase_date: date
 
 
 class TransactionOut(BaseModel):
@@ -191,6 +201,25 @@ class TransactionOut(BaseModel):
     account: AccountRef | None = None
     #: Si no es None, es la comisión de esa transferencia (se edita desde la transferencia).
     transfer_id: int | None = None
+    #: Cuota `installment_number` de `installment_count`; se edita la compra entera (`installment_plan`).
+    installment_number: int | None = None
+    installment_count: int | None = None
+    installment_plan: InstallmentPlanRef | None = None
+
+
+class InstallmentProgressOut(BaseModel):
+    """Compra en cuotas en curso: "3/12 · faltan R$ 900"."""
+
+    id: int
+    description: str
+    category_id: int | None
+    total_amount: Decimal
+    installments: int
+    purchase_date: date
+    installment_amount: Decimal
+    charged: int
+    remaining: Decimal
+    next_date: date | None
 
 
 class TransferIn(BaseModel):

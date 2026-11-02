@@ -4,7 +4,7 @@ from ...application.cards import CardData
 from ...container import Container
 from ...domain.entities import CardOverview, User
 from ..dependencies import get_container, get_current_user
-from ..schemas import CardIn, CardOut, StatementOut
+from ..schemas import CardIn, CardOut, InstallmentProgressOut, StatementOut
 from .accounts import account_fields, check_institution
 
 router = APIRouter(prefix="/cards", tags=["cards"])
@@ -40,6 +40,27 @@ def list_statements(card_id: int, user: User = Depends(get_current_user), c: Con
     Los movimientos de una factura se piden a /transactions con account_id, start=start_date y end=closing_date.
     """
     return [StatementOut.model_validate(s) for s in c.get_statements.execute(user.id, card_id)]
+
+
+@router.get("/{card_id}/installments", response_model=list[InstallmentProgressOut])
+def list_installments(card_id: int, user: User = Depends(get_current_user), c: Container = Depends(get_container)):
+    """Compras en cuotas de la tarjeta que todavía tienen cuotas por cargar."""
+    c.get_card.execute(user.id, card_id)  # 404 si no es una tarjeta del usuario
+    return [
+        InstallmentProgressOut(
+            id=p.plan.id,
+            description=p.plan.description,
+            category_id=p.plan.category_id,
+            total_amount=p.plan.total_amount,
+            installments=p.plan.installments,
+            purchase_date=p.plan.purchase_date,
+            installment_amount=p.installment_amount,
+            charged=p.charged,
+            remaining=p.remaining,
+            next_date=p.next_date,
+        )
+        for p in c.list_installments.execute(user.id, card_id)
+    ]
 
 
 @router.post("", response_model=CardOut, status_code=status.HTTP_201_CREATED)

@@ -4,7 +4,16 @@ from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
-from app.domain.entities import Account, Category, CategoryTotal, CurrencyAmount, Transaction, Transfer, User
+from app.domain.entities import (
+    Account,
+    Category,
+    CategoryTotal,
+    CurrencyAmount,
+    InstallmentPlan,
+    Transaction,
+    Transfer,
+    User,
+)
 from app.domain.exceptions import DuplicateAccount
 
 ZERO = Decimal("0")
@@ -17,6 +26,7 @@ class Store:
         self.accounts: dict[int, Account] = {}
         self.transactions: dict[int, Transaction] = {}
         self.transfers: dict[int, Transfer] = {}
+        self.plans: dict[int, InstallmentPlan] = {}
         self.rates: dict[date, dict[str, Decimal]] = {}
         self._ids = 0
 
@@ -113,7 +123,9 @@ class FakeTransactions:
 
     def get(self, user_id, transaction_id):
         t = self.s.transactions.get(transaction_id)
-        return t if t and t.user_id == user_id else None
+        if not t or t.user_id != user_id:
+            return None
+        return replace(t, installment_plan=self.s.plans.get(t.installment_plan_id))
 
     def get_fee(self, transfer_id):
         return next((t for t in self.s.transactions.values() if t.transfer_id == transfer_id), None)
@@ -129,6 +141,35 @@ class FakeTransactions:
 
     def delete(self, user_id, transaction_id):
         self.s.transactions.pop(transaction_id, None)
+
+
+class FakeInstallmentPlans:
+    def __init__(self, s: Store):
+        self.s = s
+
+    def get(self, user_id, plan_id):
+        p = self.s.plans.get(plan_id)
+        return p if p and p.user_id == user_id else None
+
+    def list(self, user_id, account_id):
+        return [p for p in self.s.plans.values() if p.user_id == user_id and p.account_id == account_id]
+
+    def add(self, plan):
+        created = replace(plan, id=self.s.next_id())
+        self.s.plans[created.id] = created
+        return created
+
+    def update(self, plan):
+        self.s.plans[plan.id] = plan
+        return plan
+
+    def delete_installments(self, plan_id):
+        for t in [t for t in self.s.transactions.values() if t.installment_plan_id == plan_id]:
+            self.s.transactions.pop(t.id)
+
+    def delete(self, user_id, plan_id):
+        self.delete_installments(plan_id)
+        self.s.plans.pop(plan_id, None)
 
 
 class FakeTransfers:
@@ -217,6 +258,7 @@ class FakeUnitOfWork:
         self.categories = FakeCategories(store)
         self.accounts = FakeAccounts(store)
         self.transactions = FakeTransactions(store)
+        self.installment_plans = FakeInstallmentPlans(store)
         self.transfers = FakeTransfers(store)
         self.rates = FakeRates(store)
         self.reports = FakeReports(store)

@@ -8,6 +8,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   HandCoinsIcon,
+  LayersIcon,
   PencilIcon,
   PlusIcon,
   ReceiptTextIcon,
@@ -20,7 +21,7 @@ import { TransactionList, TransactionListSkeleton } from '@/components/app/Trans
 import { useQuickActions } from '@/components/app/TransactionEditorProvider'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { CreditCard, Statement, Transaction, Transfer } from '@/domain/types'
+import type { CreditCard, InstallmentProgress, Statement, Transaction, Transfer } from '@/domain/types'
 import { useCountUp } from '@/hooks/use-count-up'
 import { useI18n } from '@/i18n/I18nProvider'
 import { format } from '@/i18n/runtime'
@@ -40,16 +41,18 @@ export default function CardDetail({ cardId }: { cardId: number }) {
   const [statements, setStatements] = useState<Statement[] | null>(null)
   const [month, setMonth] = useState<string | null>(null)
   const [items, setItems] = useState<{ txs: Transaction[]; transfers: Transfer[] } | null>(null)
+  const [installments, setInstallments] = useState<InstallmentProgress[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
     setError('')
-    Promise.all([cardsApi.get(cardId), cardsApi.statements(cardId)])
-      .then(([c, list]) => {
+    Promise.all([cardsApi.get(cardId), cardsApi.statements(cardId), cardsApi.installments(cardId)])
+      .then(([c, list, plans]) => {
         if (cancelled) return
         setCard(c)
         setStatements(list)
+        setInstallments(plans)
         // Primero, la factura que importa hoy: la próxima a pagar o la abierta.
         setMonth((current) => (current && list.some((s) => s.month === current) ? current : focusStatement(c).month))
       })
@@ -284,6 +287,41 @@ export default function CardDetail({ cardId }: { cardId: number }) {
           </div>
         )}
       </section>
+
+      {card && installments.length > 0 && (
+        <section className="mt-6" aria-labelledby="installments-title">
+          <SectionTitle id="installments-title" icon={LayersIcon}>
+            {t.cards.installmentsTitle}
+          </SectionTitle>
+          <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+            {installments.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 px-4 py-3">
+                <span className="tabular flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/12 type-caption font-bold text-primary">
+                  {p.charged}/{p.installments}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{p.description || money(p.total_amount, card.currency)}</p>
+                  <div className="my-1.5 h-1.5 max-w-xs overflow-hidden rounded-full bg-muted" aria-hidden>
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${(p.charged / p.installments) * 100}%` }} />
+                  </div>
+                  <p className="truncate type-caption text-muted-foreground">
+                    {format(t.cards.installmentProgress, { charged: p.charged, total: p.installments })}
+                    {p.next_date && ` · ${format(t.cards.nextInstallment, { date: formatDate(p.next_date) })}`}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="tabular font-semibold">
+                    {format(t.cards.remaining, { amount: money(p.remaining, card.currency) })}
+                  </p>
+                  <p className="tabular type-caption text-muted-foreground">
+                    {p.installments}× {money(p.installment_amount, card.currency)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-6" aria-labelledby="statement-movements">
         <SectionTitle id="statement-movements" icon={ReceiptTextIcon}>
