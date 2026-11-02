@@ -1,3 +1,5 @@
+import { getMessages } from '@/i18n/runtime'
+
 const TOKEN_KEY = 'capitalis_token'
 
 export const tokenStore = {
@@ -26,10 +28,13 @@ interface Options {
   query?: Record<string, string | number | undefined | null>
 }
 
-function errorMessage(detail: unknown): string {
-  if (typeof detail === 'string') return detail
-  if (Array.isArray(detail) && detail[0]?.msg) return `Datos inválidos: ${detail[0].msg}`
-  return 'Ocurrió un error inesperado'
+/** Mensaje en el idioma del usuario: por el código estable del backend, o el texto que venga. */
+function errorMessage(data: { detail?: unknown; code?: unknown } | null): string {
+  const t = getMessages().errors
+  if (typeof data?.code === 'string' && t.codes[data.code]) return t.codes[data.code]
+  if (Array.isArray(data?.detail)) return t.invalidData
+  if (typeof data?.detail === 'string') return data.detail
+  return t.unexpected
 }
 
 export async function http<T>(path: string, { method = 'GET', body, query }: Options = {}): Promise<T> {
@@ -52,7 +57,7 @@ export async function http<T>(path: string, { method = 'GET', body, query }: Opt
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
   } catch {
-    throw new ApiError(0, 'No se pudo conectar con el servidor')
+    throw new ApiError(0, getMessages().errors.network)
   }
 
   if (res.status === 204) return undefined as T
@@ -60,7 +65,7 @@ export async function http<T>(path: string, { method = 'GET', body, query }: Opt
 
   if (!res.ok) {
     if (res.status === 401 && token) onUnauthorized()
-    throw new ApiError(res.status, errorMessage(data?.detail))
+    throw new ApiError(res.status, errorMessage(data))
   }
   return data as T
 }

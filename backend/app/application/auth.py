@@ -1,6 +1,6 @@
 from dataclasses import dataclass, replace
 
-from ..domain.defaults import DEFAULT_CATEGORIES
+from ..domain.defaults import DEFAULT_CATEGORIES_BY_LANGUAGE
 from ..domain.entities import Category, User
 from ..domain.exceptions import EmailAlreadyRegistered, InvalidCredentials, Unauthenticated
 from .ports import PasswordHasher, TokenService, UnitOfWorkFactory
@@ -18,16 +18,26 @@ class RegisterUser:
         self._hasher = hasher
         self._tokens = tokens
 
-    def execute(self, name: str, email: str, password: str, currency: str) -> AuthResult:
+    def execute(self, name: str, email: str, password: str, currency: str, language: str = "es") -> AuthResult:
         email = email.lower()
         with self._uow_factory() as uow:
             if uow.users.get_by_email(email):
                 raise EmailAlreadyRegistered()
             user = uow.users.add(
-                User(id=None, name=name, email=email, password_hash=self._hasher.hash(password), currency=currency)
+                User(
+                    id=None,
+                    name=name,
+                    email=email,
+                    password_hash=self._hasher.hash(password),
+                    currency=currency,
+                    language=language,
+                )
             )
             uow.categories.add_many(
-                [Category(id=None, user_id=user.id, name=n, type=t, color=c) for n, t, c in DEFAULT_CATEGORIES]
+                [
+                    Category(id=None, user_id=user.id, name=n, type=t, color=c, icon=i)
+                    for n, t, c, i in DEFAULT_CATEGORIES_BY_LANGUAGE.get(language, DEFAULT_CATEGORIES_BY_LANGUAGE["es"])
+                ]
             )
             uow.commit()
         return AuthResult(self._tokens.create(user.id), user)
@@ -69,8 +79,8 @@ class UpdateProfile:
     def __init__(self, uow_factory: UnitOfWorkFactory):
         self._uow_factory = uow_factory
 
-    def execute(self, user: User, name: str | None, currency: str | None) -> User:
-        changes = {k: v for k, v in {"name": name, "currency": currency}.items() if v is not None}
+    def execute(self, user: User, name: str | None, currency: str | None, language: str | None = None) -> User:
+        changes = {k: v for k, v in {"name": name, "currency": currency, "language": language}.items() if v is not None}
         with self._uow_factory() as uow:
             updated = uow.users.update(replace(user, **changes))
             uow.commit()

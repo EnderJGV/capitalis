@@ -19,6 +19,7 @@ class UserModel(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     currency: Mapped[str] = mapped_column(String(3), default="BRL")
+    language: Mapped[str] = mapped_column(String(5), default="es", server_default="es")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -31,6 +32,7 @@ class CategoryModel(Base):
     name: Mapped[str] = mapped_column(String(60))
     type: Mapped[str] = mapped_column(String(7))
     color: Mapped[str] = mapped_column(String(7), default="#6b7280")
+    icon: Mapped[str] = mapped_column(String(16), default="", server_default="")
 
 
 class TransactionModel(Base):

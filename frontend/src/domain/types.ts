@@ -8,6 +8,8 @@ export interface User {
   name: string
   email: string
   currency: Currency
+  /** Idioma de la interfaz elegido por el usuario: 'es' | 'pt' | 'en'. */
+  language: string
 }
 
 export interface AuthResponse {
@@ -20,6 +22,8 @@ export interface Category {
   name: string
   type: TxType
   color: string
+  /** Emoji opcional para identificar la categoría de un vistazo. */
+  icon: string
 }
 
 export type CategoryInput = Omit<Category, 'id'>
@@ -44,6 +48,9 @@ export interface TransactionInput {
 
 export interface TransactionFilters {
   month?: string
+  /** Rango de fechas (YYYY-MM-DD), alternativo a `month`. */
+  start?: string
+  end?: string
   type?: TxType | ''
   category_id?: number | ''
 }
@@ -52,6 +59,7 @@ export interface CategoryTotal {
   category_id: number | null
   name: string
   color: string
+  icon: string
   total: string
 }
 

@@ -53,7 +53,14 @@ Las dependencias apuntan siempre hacia adentro: `presentation → application �
 
 ## Frontend (`frontend/src`)
 
-`domain/` (tipos) · `services/` (cliente HTTP y API) · `context/` (sesión) · `components/` · `pages/` · `utils/`.
+`domain/` (tipos) · `services/` (cliente HTTP y API) · `context/` (sesión) · `components/` · `pages/` · `utils/` · `hooks/` · `lib/`.
+
+- **UI**: Tailwind CSS v4 + shadcn/ui. Los componentes base (generados con el CLI de shadcn) están en `components/ui/`; los de la app (`AppShell`, `MonthStrip`, `TransactionEditor`…) en `components/app/`.
+- **Diseño "Banca tranquila"**: tokens de color en `src/index.css` (`:root` claro, `.dark` oscuro), con utilidades propias `text-income`, `bg-expense`, `bg-available`. Paleta de categorías en `lib/palette.ts`.
+- **Tema**: automático según el sistema, con selector manual en el menú de usuario (`next-themes`, guardado en `localStorage`).
+- Atajo **N**: nuevo movimiento desde cualquier pantalla.
+- **Idiomas** (`src/i18n/`): español, português y English. `messages/es.ts` es la referencia y su tipo obliga a que las otras traducciones tengan las mismas claves. El idioma se guarda en la cuenta (`users.language`) y define también el formato de fechas y números; los errores del backend llegan con un `code` estable que el frontend traduce.
+- **Configuración** (`/configuracion`): perfil, idioma, moneda, tema, atajos y sesión.
 
 ## Pendiente / siguientes pasos
 

@@ -7,9 +7,11 @@ interface AuthContextValue {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (data: { name: string; email: string; password: string; currency: Currency }) => Promise<void>
+  register: (data: { name: string; email: string; password: string; currency: Currency; language: string }) => Promise<void>
   logout: () => void
   setCurrency: (currency: Currency) => Promise<void>
+  setLanguage: (language: string) => Promise<void>
+  setName: (name: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -49,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(res.user)
       },
       setCurrency: async (currency) => setUser(await authApi.updateMe({ currency })),
+      setLanguage: async (language) => setUser(await authApi.updateMe({ language })),
+      setName: async (name) => setUser(await authApi.updateMe({ name })),
     }),
     [user, loading, logout],
   )

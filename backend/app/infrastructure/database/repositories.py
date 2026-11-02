@@ -13,11 +13,13 @@ from .models import CategoryModel, TransactionModel, UserModel
 
 
 def _user(m: UserModel) -> User:
-    return User(id=m.id, name=m.name, email=m.email, password_hash=m.password_hash, currency=m.currency)
+    return User(
+        id=m.id, name=m.name, email=m.email, password_hash=m.password_hash, currency=m.currency, language=m.language
+    )
 
 
 def _category(m: CategoryModel) -> Category:
-    return Category(id=m.id, user_id=m.user_id, name=m.name, type=m.type, color=m.color)
+    return Category(id=m.id, user_id=m.user_id, name=m.name, type=m.type, color=m.color, icon=m.icon)
 
 
 def _transaction(m: TransactionModel) -> Transaction:
@@ -46,7 +48,13 @@ class SqlUserRepository:
         return _user(m) if m else None
 
     def add(self, user: User) -> User:
-        m = UserModel(name=user.name, email=user.email, password_hash=user.password_hash, currency=user.currency)
+        m = UserModel(
+            name=user.name,
+            email=user.email,
+            password_hash=user.password_hash,
+            currency=user.currency,
+            language=user.language,
+        )
         self._s.add(m)
         try:
             self._s.flush()
@@ -56,7 +64,7 @@ class SqlUserRepository:
 
     def update(self, user: User) -> User:
         m = self._s.get(UserModel, user.id)
-        m.name, m.currency = user.name, user.currency
+        m.name, m.currency, m.language = user.name, user.currency, user.language
         self._s.flush()
         return _user(m)
 
@@ -87,20 +95,22 @@ class SqlCategoryRepository:
             raise DuplicateCategory()
 
     def add(self, category: Category) -> Category:
-        m = CategoryModel(user_id=category.user_id, name=category.name, type=category.type, color=category.color)
+        m = CategoryModel(
+            user_id=category.user_id, name=category.name, type=category.type, color=category.color, icon=category.icon
+        )
         self._s.add(m)
         self._flush()
         return _category(m)
 
     def add_many(self, categories: list[Category]) -> None:
         self._s.add_all(
-            CategoryModel(user_id=c.user_id, name=c.name, type=c.type, color=c.color) for c in categories
+            CategoryModel(user_id=c.user_id, name=c.name, type=c.type, color=c.color, icon=c.icon) for c in categories
         )
         self._flush()
 
     def update(self, category: Category) -> Category:
         m = self._owned(category.user_id, category.id)
-        m.name, m.type, m.color = category.name, category.type, category.color
+        m.name, m.type, m.color, m.icon = category.name, category.type, category.color, category.icon
         self._flush()
         return _category(m)
 
@@ -203,6 +213,7 @@ class SqlReportRepository:
                 CategoryModel.id,
                 func.coalesce(CategoryModel.name, "Sin categoría"),
                 func.coalesce(CategoryModel.color, "#9ca3af"),
+                func.coalesce(CategoryModel.icon, ""),
                 total,
             )
             .select_from(TransactionModel)
@@ -213,10 +224,10 @@ class SqlReportRepository:
                 TransactionModel.date >= start,
                 TransactionModel.date <= end,
             )
-            .group_by(CategoryModel.id, CategoryModel.name, CategoryModel.color)
+            .group_by(CategoryModel.id, CategoryModel.name, CategoryModel.color, CategoryModel.icon)
             .order_by(total.desc())
         ).all()
-        return [CategoryTotal(category_id=cid, name=n, color=c, total=t) for cid, n, c, t in rows]
+        return [CategoryTotal(category_id=cid, name=n, color=c, icon=i, total=t) for cid, n, c, i, t in rows]
 
     def monthly_totals(self, user_id: int, start: date, end: date) -> dict[str, tuple[Decimal, Decimal]]:
         ym = func.to_char(TransactionModel.date, "YYYY-MM")

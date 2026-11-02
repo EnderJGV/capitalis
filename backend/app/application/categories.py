@@ -20,9 +20,11 @@ class CreateCategory:
     def __init__(self, uow_factory: UnitOfWorkFactory):
         self._uow_factory = uow_factory
 
-    def execute(self, user_id: int, name: str, type: TxType, color: str) -> Category:
+    def execute(self, user_id: int, name: str, type: TxType, color: str, icon: str = "") -> Category:
         with self._uow_factory() as uow:
-            category = uow.categories.add(Category(id=None, user_id=user_id, name=name, type=type, color=color))
+            category = uow.categories.add(
+                Category(id=None, user_id=user_id, name=name, type=type, color=color, icon=icon)
+            )
             uow.commit()
         return category
 
@@ -31,14 +33,16 @@ class UpdateCategory:
     def __init__(self, uow_factory: UnitOfWorkFactory):
         self._uow_factory = uow_factory
 
-    def execute(self, user_id: int, category_id: int, name: str, type: TxType, color: str) -> Category:
+    def execute(
+        self, user_id: int, category_id: int, name: str, type: TxType, color: str, icon: str = ""
+    ) -> Category:
         with self._uow_factory() as uow:
             current = uow.categories.get(user_id, category_id)
             if not current:
                 raise EntityNotFound(NOT_FOUND)
             if type != current.type and uow.categories.has_transactions(category_id):
                 raise CategoryHasTransactions()
-            category = uow.categories.update(replace(current, name=name, type=type, color=color))
+            category = uow.categories.update(replace(current, name=name, type=type, color=color, icon=icon))
             uow.commit()
         return category
 

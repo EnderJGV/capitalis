@@ -40,3 +40,7 @@ class InvalidMonth(DomainError):
 
 class InvalidAmount(DomainError):
     message = "El monto debe ser mayor que 0"
+
+
+class InvalidDateRange(DomainError):
+    message = "La fecha inicial no puede ser posterior a la final"

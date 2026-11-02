@@ -15,7 +15,7 @@ def list_categories(user: User = Depends(get_current_user), c: Container = Depen
 
 @router.post("", response_model=CategoryOut, status_code=status.HTTP_201_CREATED)
 def create_category(data: CategoryIn, user: User = Depends(get_current_user), c: Container = Depends(get_container)):
-    return c.create_category.execute(user.id, data.name, data.type, data.color)
+    return c.create_category.execute(user.id, data.name, data.type, data.color, data.icon)
 
 
 @router.put("/{category_id}", response_model=CategoryOut)
@@ -25,7 +25,7 @@ def update_category(
     user: User = Depends(get_current_user),
     c: Container = Depends(get_container),
 ):
-    return c.update_category.execute(user.id, category_id, data.name, data.type, data.color)
+    return c.update_category.execute(user.id, category_id, data.name, data.type, data.color, data.icon)
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)

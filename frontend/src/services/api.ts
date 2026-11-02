@@ -12,12 +12,12 @@ import type {
 import { http } from './http'
 
 export const authApi = {
-  register: (data: { name: string; email: string; password: string; currency: Currency }) =>
+  register: (data: { name: string; email: string; password: string; currency: Currency; language: string }) =>
     http<AuthResponse>('/auth/register', { method: 'POST', body: data }),
   login: (data: { email: string; password: string }) =>
     http<AuthResponse>('/auth/login', { method: 'POST', body: data }),
   me: () => http<User>('/auth/me'),
-  updateMe: (data: { name?: string; currency?: Currency }) =>
+  updateMe: (data: { name?: string; currency?: Currency; language?: string }) =>
     http<User>('/auth/me', { method: 'PATCH', body: data }),
 }
 

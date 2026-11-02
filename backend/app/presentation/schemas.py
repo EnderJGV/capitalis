@@ -8,11 +8,15 @@ TxType = Literal["income", "expense"]
 Currency = Literal["BRL", "USD", "EUR", "ARS", "MXN", "CLP", "COP", "PEN"]
 
 
+Language = Literal["es", "pt", "en"]
+
+
 class RegisterIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     email: EmailStr
     password: str = Field(min_length=8, max_length=72)
     currency: Currency = "BRL"
+    language: Language = "es"
 
 
 class LoginIn(BaseModel):
@@ -23,6 +27,7 @@ class LoginIn(BaseModel):
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     currency: Currency | None = None
+    language: Language | None = None
 
 
 class UserOut(BaseModel):
@@ -31,6 +36,7 @@ class UserOut(BaseModel):
     name: str
     email: str
     currency: str
+    language: str
 
 
 class TokenOut(BaseModel):
@@ -42,6 +48,7 @@ class CategoryIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     type: TxType
     color: str = Field(default="#6b7280", pattern=r"^#[0-9a-fA-F]{6}$")
+    icon: str = Field(default="", max_length=16)
 
 
 class CategoryOut(CategoryIn):
@@ -73,6 +80,7 @@ class CategoryTotalOut(BaseModel):
     category_id: int | None
     name: str
     color: str
+    icon: str = ""
     total: Decimal
 
 

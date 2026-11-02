@@ -6,6 +6,7 @@ from typing import Literal
 from .exceptions import InvalidAmount
 
 TxType = Literal["income", "expense"]
+Language = Literal["es", "pt", "en"]
 
 
 @dataclass
@@ -15,6 +16,7 @@ class User:
     email: str
     password_hash: str
     currency: str = "BRL"
+    language: str = "es"
 
 
 @dataclass
@@ -24,6 +26,7 @@ class Category:
     name: str
     type: TxType
     color: str = "#6b7280"
+    icon: str = ""
 
 
 @dataclass
@@ -48,6 +51,7 @@ class CategoryTotal:
     name: str
     color: str
     total: Decimal
+    icon: str = ""
 
 
 @dataclass(frozen=True)

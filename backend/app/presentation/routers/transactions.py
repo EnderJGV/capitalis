@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, Response, status
 
 from ...application.transactions import TransactionData
@@ -12,12 +14,15 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 @router.get("", response_model=list[TransactionOut])
 def list_transactions(
     month: str | None = None,
+    start: date | None = None,
+    end: date | None = None,
     type: TxType | None = None,
     category_id: int | None = None,
     user: User = Depends(get_current_user),
     c: Container = Depends(get_container),
 ):
-    return c.list_transactions.execute(user.id, month, type, category_id)
+    """Filtra por mes (YYYY-MM) o por un rango de fechas [start, end]; `month` tiene prioridad."""
+    return c.list_transactions.execute(user.id, month, type, category_id, start, end)
 
 
 @router.post("", response_model=TransactionOut, status_code=status.HTTP_201_CREATED)

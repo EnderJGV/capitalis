@@ -10,7 +10,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
 def register(data: RegisterIn, c: Container = Depends(get_container)):
-    return c.register_user.execute(data.name, data.email, data.password, data.currency)
+    return c.register_user.execute(data.name, data.email, data.password, data.currency, data.language)
 
 
 @router.post("/login", response_model=TokenOut)
@@ -25,4 +25,4 @@ def me(user: User = Depends(get_current_user)):
 
 @router.patch("/me", response_model=UserOut)
 def update_me(data: UserUpdate, user: User = Depends(get_current_user), c: Container = Depends(get_container)):
-    return c.update_profile.execute(user, data.name, data.currency)
+    return c.update_profile.execute(user, data.name, data.currency, data.language)

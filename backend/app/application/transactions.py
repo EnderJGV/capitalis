@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 
 from ..domain.entities import Transaction, TxType
-from ..domain.exceptions import CategoryTypeMismatch, EntityNotFound
+from ..domain.exceptions import CategoryTypeMismatch, EntityNotFound, InvalidDateRange
 from ..domain.periods import month_range
 from .ports import UnitOfWork, UnitOfWorkFactory
 
@@ -39,8 +39,13 @@ class ListTransactions:
         month: str | None = None,
         type: TxType | None = None,
         category_id: int | None = None,
+        start: date | None = None,
+        end: date | None = None,
     ) -> list[Transaction]:
-        start, end = month_range(month) if month else (None, None)
+        if month:
+            start, end = month_range(month)
+        elif start and end and start > end:
+            raise InvalidDateRange()
         with self._uow_factory() as uow:
             return uow.transactions.list(user_id, start=start, end=end, type=type, category_id=category_id)
 
