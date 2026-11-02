@@ -1,17 +1,18 @@
 import { useState } from 'react'
-import { CalendarRangeIcon, CheckIcon, LayersIcon, SearchIcon, SlidersHorizontalIcon, TagIcon } from 'lucide-react'
+import { CalendarRangeIcon, CheckIcon, LayersIcon, SearchIcon, SlidersHorizontalIcon, TagIcon, WalletIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import type { Category } from '@/domain/types'
+import type { Account, Category } from '@/domain/types'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n/I18nProvider'
 import { PERIOD_PRESETS, presetPeriod, type Period } from '@/lib/periods'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/utils/format'
 import { CategoryAvatar } from './CategoryAvatar'
+import { InstitutionLogo } from './InstitutionLogo'
 
 interface Props {
   period: Period
@@ -20,6 +21,9 @@ interface Props {
   categories: Category[]
   categoryId: number | null
   onCategoryChange: (id: number | null) => void
+  accounts: Account[]
+  accountId: number | null
+  onAccountChange: (id: number | null) => void
   /** Cuántos filtros del panel están activos (para el contador del botón). */
   activeCount: number
   onReset: () => void
@@ -55,7 +59,10 @@ export function MovementFilters(props: Props) {
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>{trigger()}</PopoverTrigger>
-        <PopoverContent align="end" className="w-[22rem] p-0">
+        <PopoverContent
+          align="end"
+          className="flex max-h-(--radix-popover-content-available-height) w-[22rem] flex-col overflow-hidden p-0"
+        >
           {panel}
         </PopoverContent>
       </Popover>
@@ -84,6 +91,9 @@ function FiltersPanel({
   categories,
   categoryId,
   onCategoryChange,
+  accounts,
+  accountId,
+  onAccountChange,
   onReset,
   onDone,
 }: Props & { onDone: () => void }) {
@@ -93,7 +103,7 @@ function FiltersPanel({
   const visibleCategories = q ? categories.filter((c) => c.name.toLocaleLowerCase().includes(q)) : categories
 
   return (
-    <div className="flex max-h-[inherit] min-h-0 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
         {/* Período */}
         <section className="flex flex-col gap-2.5">
@@ -151,6 +161,31 @@ function FiltersPanel({
             </div>
           )}
         </section>
+
+        {/* Cuenta */}
+        {accounts.length > 1 && (
+          <section className="flex flex-col gap-2.5">
+            <h3 className="flex items-center gap-2 type-meta font-semibold">
+              <WalletIcon className="size-4 text-muted-foreground" />
+              {t.movements.account}
+            </h3>
+            <ul role="listbox" aria-label={t.movements.account} className="flex flex-col gap-0.5">
+              <CategoryOption selected={accountId === null} onClick={() => onAccountChange(null)}>
+                <span className="flex size-5 items-center justify-center rounded-md bg-muted">
+                  <LayersIcon className="size-3" />
+                </span>
+                {t.movements.allAccounts}
+              </CategoryOption>
+              {accounts.map((a) => (
+                <CategoryOption key={a.id} selected={accountId === a.id} onClick={() => onAccountChange(a.id)}>
+                  <InstitutionLogo institution={a.institution} name={a.name} size="xs" />
+                  <span className="truncate">{a.name}</span>
+                  <span className="ml-1 type-caption text-muted-foreground">{a.currency}</span>
+                </CategoryOption>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* Categoría */}
         <section className="flex flex-col gap-2.5">

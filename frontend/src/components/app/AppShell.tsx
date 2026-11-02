@@ -8,11 +8,20 @@ import {
   PlusIcon,
   SettingsIcon,
   TagsIcon,
+  WalletIcon,
   type LucideIcon,
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n/I18nProvider'
+import { TYPE_ICON } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { BrandBackdrop } from './BrandBackdrop'
 import { Logo } from './Logo'
@@ -22,13 +31,14 @@ import { UserMenu } from './UserMenu'
 interface NavItem {
   to: string
   /** Clave del texto en t.nav */
-  key: 'summary' | 'movements' | 'categories' | 'settings'
+  key: 'summary' | 'movements' | 'accounts' | 'categories' | 'settings'
   icon: LucideIcon
 }
 
 const NAV: NavItem[] = [
   { to: '/', key: 'summary', icon: LayoutDashboardIcon },
   { to: '/movimientos', key: 'movements', icon: ArrowLeftRightIcon },
+  { to: '/cuentas', key: 'accounts', icon: WalletIcon },
   { to: '/categorias', key: 'categories', icon: TagsIcon },
   { to: '/configuracion', key: 'settings', icon: SettingsIcon },
 ]
@@ -107,7 +117,7 @@ interface SidebarProps {
 /** Barra lateral: expandida (256px) o contraída a íconos (72px). Oculta en móvil. */
 function Sidebar({ expanded, canToggle, onToggle }: SidebarProps) {
   const { t } = useI18n()
-  const { openNew } = useTransactionEditor()
+  const { openNew, openTransfer } = useTransactionEditor()
   const shortcut = IS_MAC ? '⌘B' : 'Ctrl+B'
 
   return (
@@ -154,6 +164,25 @@ function Sidebar({ expanded, canToggle, onToggle }: SidebarProps) {
               <>
                 <span className="flex-1 text-left">{t.nav.newMovement}</span>
                 <kbd className="rounded border border-current/25 px-1.5 type-caption font-medium opacity-70">N</kbd>
+              </>
+            )}
+          </button>
+        </SidebarTooltip>
+        <SidebarTooltip label={`${t.quick.transfer} (T)`} show={!expanded}>
+          <button
+            type="button"
+            onClick={() => openTransfer()}
+            aria-label={t.quick.transfer}
+            className={cn(
+              'mt-2 flex h-9 w-full items-center gap-2 rounded-lg border border-sidebar-border font-medium text-sidebar-accent-foreground transition-colors outline-none hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-sidebar-ring/60',
+              expanded ? 'px-3 type-meta' : 'justify-center',
+            )}
+          >
+            <ArrowLeftRightIcon className="size-4 shrink-0" />
+            {expanded && (
+              <>
+                <span className="flex-1 text-left">{t.quick.transfer}</span>
+                <kbd className="rounded border border-current/25 px-1.5 type-caption font-medium opacity-60">T</kbd>
               </>
             )}
           </button>
@@ -237,8 +266,7 @@ function MobileTopBar() {
 
 function BottomNav() {
   const { t } = useI18n()
-  const { openNew } = useTransactionEditor()
-  const [home, movements, categories, settings] = NAV
+  const [home, movements, accounts, , settings] = NAV
   return (
     <nav
       aria-label={t.nav.main}
@@ -247,16 +275,9 @@ function BottomNav() {
       <BottomNavLink item={home} />
       <BottomNavLink item={movements} />
       <div className="flex items-center justify-center">
-        <button
-          type="button"
-          onClick={openNew}
-          aria-label={t.nav.newMovement}
-          className="-mt-5 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background outline-none focus-visible:ring-ring/60"
-        >
-          <PlusIcon className="size-6" strokeWidth={2.25} />
-        </button>
+        <QuickAddMenu />
       </div>
-      <BottomNavLink item={categories} />
+      <BottomNavLink item={accounts} />
       <BottomNavLink item={settings} />
     </nav>
   )
@@ -281,5 +302,40 @@ function BottomNavLink({ item }: { item: NavItem }) {
       </span>
       <span className="max-w-full truncate px-1">{item.key === 'settings' ? t.nav.settingsShort : t.nav[item.key]}</span>
     </NavLink>
+  )
+}
+
+/** Botón "+" de la barra inferior: elegir entre movimiento, transferencia o cuenta nueva. */
+function QuickAddMenu() {
+  const { t } = useI18n()
+  const { openNew, openTransfer, openAccount } = useTransactionEditor()
+  const options = [
+    { icon: TYPE_ICON.expense, label: t.quick.movement, hint: t.quick.movementHint, onSelect: openNew },
+    { icon: ArrowLeftRightIcon, label: t.quick.transfer, hint: t.quick.transferHint, onSelect: () => openTransfer() },
+    { icon: WalletIcon, label: t.quick.account, hint: t.quick.accountHint, onSelect: () => openAccount() },
+  ]
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={t.quick.title}
+        className="-mt-5 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background transition-transform outline-none focus-visible:ring-ring/60 data-[state=open]:rotate-45"
+      >
+        <PlusIcon className="size-6" strokeWidth={2.25} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="center" sideOffset={12} className="w-64 p-1.5">
+        <DropdownMenuLabel>{t.quick.title}</DropdownMenuLabel>
+        {options.map((o) => (
+          <DropdownMenuItem key={o.label} onSelect={o.onSelect} className="h-14 gap-3">
+            <span className="flex size-9 items-center justify-center rounded-full bg-accent text-accent-foreground">
+              <o.icon className="size-4" />
+            </span>
+            <span className="flex flex-col">
+              <span className="font-semibold">{o.label}</span>
+              <span className="type-caption text-muted-foreground">{o.hint}</span>
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

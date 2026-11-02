@@ -13,11 +13,16 @@ interface Props {
   monthBalance: number
   monthName: string
   money: (value: string | number) => string
+  /** Hay montos convertidos desde otras monedas: el total es aproximado. */
+  approximate?: boolean
+  /** Monedas sin cotización (sus cuentas quedan fuera del total). */
+  missing?: string[]
+  currency: string
   className?: string
 }
 
 /** Tarjeta principal del Resumen: el saldo total de la cuenta, sobre el fondo de marca. */
-export function BalanceHero({ total, monthBalance, monthName, money, className }: Props) {
+export function BalanceHero({ total, monthBalance, monthName, money, approximate, missing = [], currency, className }: Props) {
   const { t } = useI18n()
   const animated = useCountUp(total)
   const up = monthBalance >= 0
@@ -50,8 +55,13 @@ export function BalanceHero({ total, monthBalance, monthName, money, className }
             total < 0 ? 'text-[#F7A39E]' : 'text-sidebar-accent-foreground',
           )}
         >
+          {approximate && '≈ '}
           {money(animated)}
         </p>
+        {approximate && <p className="mt-1 type-caption">{format(t.balance.approximate, { currency })}</p>}
+        {missing.length > 0 && (
+          <p className="mt-1 type-caption text-[#F7A39E]">{format(t.balance.missing, { currencies: missing.join(', ') })}</p>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-2 type-meta">
           <span
             className={cn(

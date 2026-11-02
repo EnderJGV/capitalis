@@ -2,11 +2,14 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
   BanknoteIcon,
   CalendarIcon,
+  ArrowLeftRightIcon,
   CheckIcon,
   Loader2Icon,
+  PlusIcon,
   TagIcon,
   TextIcon,
   Trash2Icon,
+  WalletIcon,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -28,11 +31,13 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n/I18nProvider'
 import { TYPE_ICON } from '@/lib/icons'
-import type { Category, Transaction, TxType } from '@/domain/types'
+import type { Account, Category, Transaction, TxType } from '@/domain/types'
 import { categoriesApi, transactionsApi } from '@/services/api'
 import { toISODate, todayISO } from '@/utils/format'
 import { AmountInput, amountToInput, parseAmount } from './AmountInput'
+import { AccountPicker } from './AccountPicker'
 import { CategoryAvatar } from './CategoryAvatar'
+import { EmptyState } from './EmptyState'
 
 export type EditorResult = 'created' | 'updated' | 'deleted'
 
@@ -40,6 +45,24 @@ function daysAgoISO(days: number): string {
   const d = new Date()
   d.setDate(d.getDate() - days)
   return toISODate(d)
+}
+
+const LAST_ACCOUNT_KEY = 'capitalis-last-account'
+
+function lastAccountId(): number | null {
+  try {
+    return Number(localStorage.getItem(LAST_ACCOUNT_KEY)) || null
+  } catch {
+    return null
+  }
+}
+
+function rememberAccount(id: number): void {
+  try {
+    localStorage.setItem(LAST_ACCOUNT_KEY, String(id))
+  } catch {
+    // Sin almacenamiento: la próxima vez se propone la primera cuenta.
+  }
 }
 
 const QUICK_DATES = [
@@ -52,10 +75,15 @@ interface Props {
   onOpenChange: (open: boolean) => void
   /** Movimiento a editar; sin él, se crea uno nuevo. */
   initial?: Transaction
+  /** Cuentas del usuario: cada movimiento pertenece a una. */
+  accounts: Account[]
   onDone: (result: EditorResult) => void
+  onCreateAccount: () => void
+  /** Abre la transferencia dueña de una comisión. */
+  onOpenTransfer: (transferId: number) => void
 }
 
-export function TransactionEditor({ open, onOpenChange, initial, onDone }: Props) {
+export function TransactionEditor({ open, onOpenChange, initial, accounts, onDone, onCreateAccount, onOpenTransfer }: Props) {
   const { t } = useI18n()
   const isDesktop = useMediaQuery('(min-width: 640px)')
   return (
@@ -70,9 +98,40 @@ export function TransactionEditor({ open, onOpenChange, initial, onDone }: Props
             {initial ? t.editor.editDescription : t.editor.newDescription}
           </SheetDescription>
         </SheetHeader>
-        {open && (
-          <EditorForm key={initial?.id ?? 'new'} initial={initial} onDone={onDone} onCancel={() => onOpenChange(false)} />
-        )}
+        {open &&
+          (initial?.transfer_id ? (
+            // Las comisiones se editan desde su transferencia.
+            <EmptyState
+              icon={ArrowLeftRightIcon}
+              title={t.editor.feeLocked}
+              action={
+                <Button size="lg" onClick={() => onOpenTransfer(initial.transfer_id!)}>
+                  <ArrowLeftRightIcon />
+                  {t.editor.openTransfer}
+                </Button>
+              }
+            />
+          ) : accounts.length === 0 ? (
+            <EmptyState
+              icon={WalletIcon}
+              title={t.editor.noAccountsTitle}
+              description={t.editor.noAccountsDescription}
+              action={
+                <Button size="lg" onClick={onCreateAccount}>
+                  <PlusIcon />
+                  {t.editor.createAccount}
+                </Button>
+              }
+            />
+          ) : (
+            <EditorForm
+              key={initial?.id ?? 'new'}
+              initial={initial}
+              accounts={accounts}
+              onDone={onDone}
+              onCancel={() => onOpenChange(false)}
+            />
+          ))}
       </SheetContent>
     </Sheet>
   )
@@ -80,13 +139,21 @@ export function TransactionEditor({ open, onOpenChange, initial, onDone }: Props
 
 interface FormProps {
   initial?: Transaction
+  accounts: Account[]
   onDone: Props['onDone']
   onCancel: () => void
 }
 
-function EditorForm({ initial, onDone, onCancel }: FormProps) {
+function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
   const { t } = useI18n()
   const [categories, setCategories] = useState<Category[]>([])
+  const [accountId, setAccountId] = useState<number | null>(() => {
+    if (initial) return initial.account_id
+    const usable = accounts.filter((a) => !a.archived)
+    const last = lastAccountId()
+    return usable.find((a) => a.id === last)?.id ?? usable[0]?.id ?? null
+  })
+  const account = accounts.find((a) => a.id === accountId)
   const [type, setType] = useState<TxType>(initial?.type ?? 'expense')
   const [amount, setAmount] = useState(initial ? amountToInput(initial.amount) : '')
   const [date, setDate] = useState(initial?.date ?? todayISO())
@@ -108,9 +175,21 @@ function EditorForm({ initial, onDone, onCancel }: FormProps) {
       setError(t.editor.amountError)
       return
     }
+    if (!accountId) {
+      setError(t.errors.codes.AccountRequired)
+      return
+    }
     setError('')
     setSaving(true)
-    const data = { type, amount: parsed, date, description: description.trim(), category_id: categoryId }
+    rememberAccount(accountId)
+    const data = {
+      type,
+      amount: parsed,
+      date,
+      description: description.trim(),
+      category_id: categoryId,
+      account_id: accountId,
+    }
     try {
       if (initial) await transactionsApi.update(initial.id, data)
       else await transactionsApi.create(data)
@@ -162,12 +241,21 @@ function EditorForm({ initial, onDone, onCancel }: FormProps) {
         </ToggleGroup>
 
         <div className="flex flex-col gap-2">
+          <Label htmlFor="tx-account">
+            <WalletIcon className="size-4 text-muted-foreground" />
+            {t.editor.account}
+          </Label>
+          <AccountPicker id="tx-account" accounts={accounts} value={accountId} onChange={setAccountId} />
+        </div>
+
+        <div className="flex flex-col gap-2">
           <Label htmlFor="tx-amount">
             <BanknoteIcon className="size-4 text-muted-foreground" />
             {t.editor.amount}
           </Label>
           <AmountInput
             id="tx-amount"
+            currency={account?.currency}
             autoFocus
             value={amount}
             onChange={setAmount}

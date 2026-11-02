@@ -1,16 +1,19 @@
 import { useI18n } from '@/i18n/I18nProvider'
 import { cn } from '@/lib/utils'
-import { useCurrencySymbol } from '@/utils/format'
+import { currencySymbol, useCurrencySymbol } from '@/utils/format'
 
 interface Props extends Omit<React.ComponentProps<'input'>, 'value' | 'onChange'> {
   value: string
   onChange: (value: string) => void
+  /** Moneda del monto (p. ej., la de la cuenta); por defecto, la moneda principal del usuario. */
+  currency?: string
 }
 
 /** Monto grande con prefijo de moneda. Acepta coma o punto como separador decimal. */
-export function AmountInput({ value, onChange, className, ...props }: Props) {
-  const symbol = useCurrencySymbol()
-  const { lang } = useI18n()
+export function AmountInput({ value, onChange, currency, className, ...props }: Props) {
+  const mainSymbol = useCurrencySymbol()
+  const { lang, locale } = useI18n()
+  const symbol = currency ? currencySymbol(currency, locale) : mainSymbol
   return (
     <div
       className={cn(
@@ -48,4 +51,10 @@ export function parseAmount(raw: string): string | null {
 
 export function amountToInput(amount: string): string {
   return amount.replace('.', ',')
+}
+
+/** Como parseAmount, pero acepta cero (p. ej., el saldo inicial de una cuenta nueva). */
+export function parseAmountOrZero(raw: string): string | null {
+  if (!raw.trim() || /^0+([.,]0*)?$/.test(raw.trim())) return '0.00'
+  return parseAmount(raw)
 }

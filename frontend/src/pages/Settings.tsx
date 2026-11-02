@@ -1,9 +1,10 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import {
   CheckIcon,
+  ChevronRightIcon,
   KeyboardIcon,
   Loader2Icon,
   LogOutIcon,
@@ -12,6 +13,7 @@ import {
   MoonIcon,
   SlidersHorizontalIcon,
   SunIcon,
+  TagsIcon,
   UserIcon,
   type LucideIcon,
 } from 'lucide-react'
@@ -49,6 +51,7 @@ export default function Settings() {
       <div className="flex max-w-4xl flex-col gap-4">
         <ProfileSection />
         <PreferencesSection />
+        <CategoriesSection />
         <ShortcutsSection />
         <SessionSection />
       </div>
@@ -237,10 +240,27 @@ function ChoiceCard({
   )
 }
 
+function CategoriesSection() {
+  const { t } = useI18n()
+  return (
+    <Section icon={TagsIcon} title={t.settings.categoriesLink} description={t.settings.categoriesDescription}>
+      <div>
+        <Button variant="outline" size="lg" asChild>
+          <Link to="/categorias">
+            {t.settings.categoriesLink}
+            <ChevronRightIcon />
+          </Link>
+        </Button>
+      </div>
+    </Section>
+  )
+}
+
 function ShortcutsSection() {
   const { t } = useI18n()
   const shortcuts = [
     { keys: ['N'], label: t.settings.shortcutNew },
+    { keys: ['T'], label: t.settings.shortcutTransfer },
     { keys: [IS_MAC ? '⌘' : 'Ctrl', 'B'], label: t.settings.shortcutSidebar },
     { keys: ['Esc'], label: t.settings.shortcutClose },
   ]

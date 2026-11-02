@@ -1,12 +1,17 @@
 import type {
+  Account,
+  AccountInput,
   AuthResponse,
   Category,
   CategoryInput,
   Currency,
+  Rate,
   Summary,
   Transaction,
   TransactionFilters,
   TransactionInput,
+  Transfer,
+  TransferInput,
   User,
 } from '../domain/types'
 import { http } from './http'
@@ -38,4 +43,26 @@ export const transactionsApi = {
 
 export const dashboardApi = {
   summary: (month: string) => http<Summary>('/dashboard/summary', { query: { month } }),
+}
+
+export const accountsApi = {
+  list: (includeArchived = false) =>
+    http<Account[]>('/accounts', { query: { include_archived: includeArchived ? 'true' : undefined } }),
+  get: (id: number) => http<Account>(`/accounts/${id}`),
+  create: (data: AccountInput) => http<Account>('/accounts', { method: 'POST', body: data }),
+  update: (id: number, data: AccountInput) => http<Account>(`/accounts/${id}`, { method: 'PUT', body: data }),
+  remove: (id: number) => http<void>(`/accounts/${id}`, { method: 'DELETE' }),
+}
+
+export const transfersApi = {
+  list: (filters: { month?: string; start?: string; end?: string; account_id?: number | '' }) =>
+    http<Transfer[]>('/transfers', { query: { ...filters } }),
+  create: (data: TransferInput) => http<Transfer>('/transfers', { method: 'POST', body: data }),
+  update: (id: number, data: TransferInput) => http<Transfer>(`/transfers/${id}`, { method: 'PUT', body: data }),
+  remove: (id: number) => http<void>(`/transfers/${id}`, { method: 'DELETE' }),
+}
+
+export const ratesApi = {
+  /** Cotización aproximada: 1 `from` = rate `to` en la fecha indicada. */
+  get: (from: Currency, to: Currency, date?: string) => http<Rate>('/rates', { query: { from, to, date } }),
 }

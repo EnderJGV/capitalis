@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
-import { ArrowRightIcon, ChartColumnIcon, HistoryIcon, PlusIcon, ReceiptTextIcon } from 'lucide-react'
+import { ArrowRightIcon, ChartColumnIcon, HistoryIcon, PlusIcon, ReceiptTextIcon, WalletIcon } from 'lucide-react'
+import { AccountCard } from '@/components/app/AccountCard'
 import { BalanceHero, BalanceHeroSkeleton } from '@/components/app/BalanceHero'
 import { EmptyState } from '@/components/app/EmptyState'
 import { MonthStrip, MonthStripSkeleton } from '@/components/app/MonthStrip'
@@ -34,7 +35,7 @@ export default function Dashboard() {
     income: { label: t.common.incomes, color: 'var(--income)' },
     expense: { label: t.common.expenses, color: 'var(--expense)' },
   } satisfies ChartConfig
-  const { openNew, openEdit, revision } = useTransactionEditor()
+  const { openNew, openEdit, openAccount, revision } = useTransactionEditor()
   const [month, setMonth] = useMonthParam()
   const [data, setData] = useState<Data | null>(null)
   const [loadedMonth, setLoadedMonth] = useState('')
@@ -77,6 +78,23 @@ export default function Dashboard() {
         </p>
       )}
 
+      {/* Sin cuentas todavía: lo primero es registrar una. */}
+      {summary && summary.accounts.length === 0 && (
+        <div className="mb-4 rounded-xl border-2 border-dashed border-primary/30 bg-card">
+          <EmptyState
+            icon={WalletIcon}
+            title={t.dashboard.noAccountsTitle}
+            description={t.dashboard.noAccountsDescription}
+            action={
+              <Button size="lg" onClick={() => openAccount()}>
+                <PlusIcon />
+                {t.dashboard.addAccount}
+              </Button>
+            }
+          />
+        </div>
+      )}
+
       <div className="grid gap-4 xl:grid-cols-3">
         {/* Tarjeta principal: el saldo total de la cuenta */}
         {loading || !summary ? (
@@ -88,6 +106,9 @@ export default function Dashboard() {
             monthBalance={Number(summary.balance)}
             monthName={monthLabel(month)}
             money={money}
+            currency={summary.currency}
+            approximate={summary.approximate}
+            missing={summary.missing_currencies}
           />
         )}
 
@@ -119,6 +140,41 @@ export default function Dashboard() {
             money={money}
             animationKey={`${month}-${revision}`}
           />
+        )}
+
+        {summary && summary.accounts.length > 0 && (
+          <section aria-labelledby="accounts-title" className="min-w-0 xl:col-span-3">
+            <SectionTitle
+              id="accounts-title"
+              icon={WalletIcon}
+              action={
+                <Button variant="link" asChild className="px-0">
+                  <Link to="/cuentas">
+                    {t.dashboard.seeAccounts}
+                    <ArrowRightIcon />
+                  </Link>
+                </Button>
+              }
+            >
+              {t.dashboard.yourAccounts}
+            </SectionTitle>
+            {/* Fila deslizable de cuentas; termina con "Agregar cuenta". */}
+            <div className="-mx-4 flex snap-x snap-proximity scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 xl:mx-0 xl:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {summary.accounts.map((a) => (
+                <AccountCard key={a.id} account={a} mainCurrency={summary.currency} compact className="w-60 shrink-0 snap-start" />
+              ))}
+              <button
+                type="button"
+                onClick={() => openAccount()}
+                className="flex w-44 shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed type-meta font-semibold text-muted-foreground transition-colors outline-none hover:border-primary/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/40"
+              >
+                <span className="flex size-10 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                  <PlusIcon className="size-5" />
+                </span>
+                {t.dashboard.addAccount}
+              </button>
+            </div>
+          </section>
         )}
 
         <section aria-labelledby="recent-title" className="flex min-w-0 flex-col xl:col-span-2">

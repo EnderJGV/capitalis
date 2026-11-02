@@ -4,6 +4,7 @@ import { CalendarRangeIcon, ChartPieIcon, ListIcon, PlusIcon, ReceiptTextIcon, S
 import { CategoryAvatar } from '@/components/app/CategoryAvatar'
 import { CategoryChips } from '@/components/app/CategoryChips'
 import { EmptyState } from '@/components/app/EmptyState'
+import { InstitutionLogo } from '@/components/app/InstitutionLogo'
 import { MovementFilters } from '@/components/app/MovementFilters'
 import { PageHeader } from '@/components/app/PageHeader'
 import { SectionTitle, StatCard } from '@/components/app/StatCard'
@@ -12,12 +13,12 @@ import { useTransactionEditor } from '@/components/app/TransactionEditorProvider
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import type { Category, Transaction, TxType } from '@/domain/types'
+import type { Category, Transaction, Transfer, TxType } from '@/domain/types'
 import { format } from '@/i18n/runtime'
 import { useI18n } from '@/i18n/I18nProvider'
 import { TYPE_ICON } from '@/lib/icons'
 import { DEFAULT_PERIOD, monthPeriod, type Period } from '@/lib/periods'
-import { categoriesApi, transactionsApi } from '@/services/api'
+import { categoriesApi, transactionsApi, transfersApi } from '@/services/api'
 import { formatDate, useMoney } from '@/utils/format'
 
 type TypeFilter = TxType | 'all'
@@ -35,7 +36,7 @@ interface CategoryShare {
 export default function Movements() {
   const { t } = useI18n()
   const money = useMoney()
-  const { openNew, openEdit, revision } = useTransactionEditor()
+  const { openNew, openEdit, openEditTransfer, accounts, revision } = useTransactionEditor()
   const [params] = useSearchParams()
   // Por defecto, el mes actual; si se llega desde "Ver todos" del Resumen (?mes=), ese mes.
   const [period, setPeriod] = useState<Period>(() => {
@@ -44,6 +45,8 @@ export default function Movements() {
   })
   const [type, setType] = useState<TypeFilter>('all')
   const [categoryId, setCategoryId] = useState<number | null>(null)
+  const [accountId, setAccountId] = useState<number | null>(null)
+  const [transfers, setTransfers] = useState<Transfer[] | null>(null)
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<Transaction[] | null>(null)
@@ -57,20 +60,48 @@ export default function Movements() {
     let cancelled = false
     setError('')
     setItems(null)
-    transactionsApi
-      .list({ start: period.start, end: period.end, type: type === 'all' ? '' : type, category_id: categoryId ?? '' })
-      .then((txs) => !cancelled && setItems(txs))
+    // Las transferencias no son ingresos ni gastos ni tienen categoría: se ocultan con esos filtros.
+    const withTransfers = type === 'all' && categoryId === null
+    Promise.all([
+      transactionsApi.list({
+        start: period.start,
+        end: period.end,
+        type: type === 'all' ? '' : type,
+        category_id: categoryId ?? '',
+        account_id: accountId ?? '',
+      }),
+      withTransfers
+        ? transfersApi.list({ start: period.start, end: period.end, account_id: accountId ?? '' })
+        : Promise.resolve([]),
+    ])
+      .then(([txs, trs]) => {
+        if (cancelled) return
+        setItems(txs)
+        setTransfers(trs)
+      })
       .catch((e: Error) => !cancelled && setError(e.message))
     return () => {
       cancelled = true
     }
-  }, [period.start, period.end, type, categoryId, revision])
+  }, [period.start, period.end, type, categoryId, accountId, revision])
 
   const visible = useMemo(() => {
     const q = search.trim().toLocaleLowerCase()
     if (!items || !q) return items
-    return items.filter((tx) => [tx.description, tx.category?.name ?? ''].some((s) => s.toLocaleLowerCase().includes(q)))
+    return items.filter((tx) =>
+      [tx.description, tx.category?.name ?? '', tx.account?.name ?? ''].some((s) => s.toLocaleLowerCase().includes(q)),
+    )
   }, [items, search])
+
+  const visibleTransfers = useMemo(() => {
+    const q = search.trim().toLocaleLowerCase()
+    if (!transfers || !q) return transfers ?? []
+    return transfers.filter((tr) =>
+      [tr.description, tr.from_account?.name ?? '', tr.to_account?.name ?? ''].some((s) =>
+        s.toLocaleLowerCase().includes(q),
+      ),
+    )
+  }, [transfers, search])
 
   const totals = useMemo(() => {
     let income = 0
@@ -101,8 +132,9 @@ export default function Movements() {
   const categoryOptions = type === 'all' ? categories : categories.filter((c) => c.type === type)
   const selectedCategory = categories.find((c) => c.id === categoryId)
   const periodChanged = period.preset !== 'thisMonth'
-  const filtered = type !== 'all' || categoryId !== null || search.trim() !== '' || periodChanged
-  const panelActive = Number(periodChanged) + Number(categoryId !== null)
+  const filtered = type !== 'all' || categoryId !== null || accountId !== null || search.trim() !== '' || periodChanged
+  const panelActive = Number(periodChanged) + Number(categoryId !== null) + Number(accountId !== null)
+  const selectedAccount = accounts?.find((a) => a.id === accountId)
   const periodLabel =
     period.preset === 'custom'
       ? `${formatDate(period.start)} – ${formatDate(period.end)}`
@@ -116,6 +148,7 @@ export default function Movements() {
   function resetPanel() {
     setPeriod(DEFAULT_PERIOD())
     setCategoryId(null)
+    setAccountId(null)
   }
 
   function clearFilters() {
@@ -172,6 +205,9 @@ export default function Movements() {
               categories={categoryOptions}
               categoryId={categoryId}
               onCategoryChange={setCategoryId}
+              accounts={(accounts ?? []).filter((a) => !a.archived)}
+              accountId={accountId}
+              onAccountChange={setAccountId}
               activeCount={panelActive}
               onReset={resetPanel}
             />
@@ -212,6 +248,14 @@ export default function Movements() {
             onRemove={periodChanged ? () => setPeriod(DEFAULT_PERIOD()) : undefined}
             removeLabel={format(t.movements.removeFilter, { name: periodLabel })}
           />
+          {selectedAccount && (
+            <FilterPill
+              icon={<InstitutionLogo institution={selectedAccount.institution} name={selectedAccount.name} size="xs" />}
+              label={selectedAccount.name}
+              onRemove={() => setAccountId(null)}
+              removeLabel={format(t.movements.removeFilter, { name: selectedAccount.name })}
+            />
+          )}
           {selectedCategory && (
             <FilterPill
               className="hidden md:inline-flex"
@@ -234,7 +278,7 @@ export default function Movements() {
         <div className="min-w-0">
           {!visible ? (
             <TransactionListSkeleton rows={6} />
-          ) : visible.length === 0 ? (
+          ) : visible.length + visibleTransfers.length === 0 ? (
             <div className="rounded-xl border bg-card">
               {filtered ? (
                 <EmptyState
@@ -264,7 +308,7 @@ export default function Movements() {
             <>
               <div className="mb-3 flex min-h-8 items-center justify-between gap-3 px-1">
                 <p className="type-meta text-muted-foreground">
-                  {countLabel(visible.length)}
+                  {countLabel(visible.length + visibleTransfers.length)}
                   <span className="xl:hidden">
                     {' · '}
                     <span className="tabular text-income">+{money(totals.income)}</span>
@@ -279,7 +323,14 @@ export default function Movements() {
                   </Button>
                 )}
               </div>
-              <TransactionList items={visible} onSelect={openEdit} showSubtotals />
+              <TransactionList
+                items={visible}
+                transfers={visibleTransfers}
+                onSelect={openEdit}
+                onSelectTransfer={openEditTransfer}
+                accountId={accountId ?? undefined}
+                showSubtotals
+              />
             </>
           )}
         </div>

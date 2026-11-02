@@ -37,7 +37,27 @@ cp .env.example .env
 
 Si `python -m venv .venv` falla con "Unable to copy ... venvlauncher.exe", el venv ya existe y alguno de sus procesos está corriendo; detén el servidor antes de recrearlo.
 
-Las tablas se crean solas al iniciar el backend.
+Al iniciar, el backend aplica las migraciones de **Alembic** (`alembic upgrade head`); una base creada antes de Alembic se marca automáticamente con la revisión inicial. Para crear una migración nueva:
+
+```bash
+cd backend
+.venv/Scripts/python -m alembic revision -m "descripción"   # y escribe upgrade()/downgrade() en alembic/versions/
+```
+
+Tests del backend (sin base de datos ni red: usan un UnitOfWork en memoria y cotizaciones falsas):
+
+```bash
+cd backend
+.venv/Scripts/python -m pytest
+```
+
+## Cuentas, transferencias y monedas
+
+- Cada movimiento pertenece a una **cuenta** (banco, billetera digital o efectivo) con su propia moneda. Sin cuentas no se pueden registrar movimientos.
+- Las **transferencias** mueven dinero entre cuentas: con monedas distintas se guarda el monto enviado, el recibido y el tipo de cambio; la **comisión** opcional se registra como un gasto de la cuenta origen (categoría "Comisiones bancarias") enlazado a la transferencia.
+- Las transferencias no cuentan como ingreso ni gasto.
+- **Cotizaciones**: el backend las pide a [currency-api](https://github.com/fawazahmed0/exchange-api) (gratuita, sin clave) y las guarda por día en `exchange_rates`. Se usan para sugerir el tipo de cambio y para convertir los totales del Resumen a la **moneda principal** del usuario (marcados con ≈).
+- **Catálogo de instituciones** (`frontend/src/lib/institutions.ts`): bancos de Brasil, México, Venezuela, Colombia, EE. UU., Argentina, Chile, Perú y Europa, y billeteras como Wise o Payoneer. Los logos se piden en tiempo real por dominio (solo se envía el dominio del banco); si no hay logo, se muestra un monograma con el color de la marca.
 
 ## Arquitectura del backend (`backend/app`)
 
@@ -64,6 +84,6 @@ Las dependencias apuntan siempre hacia adentro: `presentation → application �
 
 ## Pendiente / siguientes pasos
 
-- Migraciones con Alembic (hoy se usa `create_all`).
-- Tests automatizados (los casos de uso se pueden probar con un `UnitOfWork` en memoria).
+- Conectar cuentas automáticamente con los bancos (hoy se registran a mano).
+- Más tests (repositorios SQL con una base de prueba).
 - Dockerizar backend y frontend cuando haga falta.

@@ -25,13 +25,24 @@ export function formatDate(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString(getLocale(), { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-export function useMoney(): (value: string | number) => string {
+/** Formatea montos en la moneda principal del usuario, o en `currency` si se indica (p. ej., la de una cuenta). */
+export function useMoney(): (value: string | number, currency?: string) => string {
   const { user } = useAuth()
   const { locale } = useI18n()
-  const currency = user?.currency ?? 'BRL'
+  const main = user?.currency ?? 'BRL'
   return useCallback(
-    (value) => new Intl.NumberFormat(locale, { style: 'currency', currency }).format(Number(value)),
-    [currency, locale],
+    (value, currency) =>
+      new Intl.NumberFormat(locale, { style: 'currency', currency: currency ?? main }).format(Number(value)),
+    [main, locale],
+  )
+}
+
+/** Símbolo corto de una moneda en el idioma actual (R$, US$, €…). */
+export function currencySymbol(currency: string, locale = getLocale()): string {
+  return (
+    new Intl.NumberFormat(locale, { style: 'currency', currency, currencyDisplay: 'narrowSymbol' })
+      .formatToParts(0)
+      .find((p) => p.type === 'currency')?.value ?? currency
   )
 }
 
