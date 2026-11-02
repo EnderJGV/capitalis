@@ -18,11 +18,12 @@ def list_transactions(
     end: date | None = None,
     type: TxType | None = None,
     category_id: int | None = None,
+    account_id: int | None = None,
     user: User = Depends(get_current_user),
     c: Container = Depends(get_container),
 ):
     """Filtra por mes (YYYY-MM) o por un rango de fechas [start, end]; `month` tiene prioridad."""
-    return c.list_transactions.execute(user.id, month, type, category_id, start, end)
+    return c.list_transactions.execute(user.id, month, type, category_id, start, end, account_id)
 
 
 @router.post("", response_model=TransactionOut, status_code=status.HTTP_201_CREATED)

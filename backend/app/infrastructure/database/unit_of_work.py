@@ -1,6 +1,14 @@
 from sqlalchemy.orm import Session, sessionmaker
 
-from .repositories import SqlCategoryRepository, SqlReportRepository, SqlTransactionRepository, SqlUserRepository
+from .repositories import (
+    SqlAccountRepository,
+    SqlCategoryRepository,
+    SqlRateRepository,
+    SqlReportRepository,
+    SqlTransactionRepository,
+    SqlTransferRepository,
+    SqlUserRepository,
+)
 
 
 class SqlAlchemyUnitOfWork:
@@ -13,7 +21,10 @@ class SqlAlchemyUnitOfWork:
         self.session = self._session_factory()
         self.users = SqlUserRepository(self.session)
         self.categories = SqlCategoryRepository(self.session)
+        self.accounts = SqlAccountRepository(self.session)
         self.transactions = SqlTransactionRepository(self.session)
+        self.transfers = SqlTransferRepository(self.session)
+        self.rates = SqlRateRepository(self.session)
         self.reports = SqlReportRepository(self.session)
         return self
 

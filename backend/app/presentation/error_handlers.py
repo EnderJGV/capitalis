@@ -14,6 +14,18 @@ STATUS_BY_ERROR: dict[type[exc.DomainError], int] = {
     exc.InvalidMonth: status.HTTP_422_UNPROCESSABLE_ENTITY,
     exc.InvalidAmount: status.HTTP_422_UNPROCESSABLE_ENTITY,
     exc.InvalidDateRange: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.AccountNotFound: status.HTTP_404_NOT_FOUND,
+    exc.TransferNotFound: status.HTTP_404_NOT_FOUND,
+    exc.AccountRequired: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.AccountArchived: status.HTTP_409_CONFLICT,
+    exc.AccountHasMovements: status.HTTP_409_CONFLICT,
+    exc.AccountCurrencyLocked: status.HTTP_409_CONFLICT,
+    exc.DuplicateAccount: status.HTTP_409_CONFLICT,
+    exc.TransferFeeLocked: status.HTTP_409_CONFLICT,
+    exc.SameAccountTransfer: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.InvalidFee: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.RateUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
+    exc.UnknownInstitution: status.HTTP_422_UNPROCESSABLE_ENTITY,
 }
 
 

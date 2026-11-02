@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .infrastructure.config import settings
 from .infrastructure.database.session import create_tables
 from .presentation.error_handlers import register_error_handlers
-from .presentation.routers import auth, categories, dashboard, transactions
+from .presentation.routers import accounts, auth, catalog, categories, dashboard, rates, transactions, transfers
 
 
 @asynccontextmanager
@@ -25,7 +25,16 @@ app.add_middleware(
 )
 register_error_handlers(app)
 
-for router in (auth.router, categories.router, transactions.router, dashboard.router):
+for router in (
+    auth.router,
+    categories.router,
+    accounts.router,
+    catalog.router,
+    transactions.router,
+    transfers.router,
+    rates.router,
+    dashboard.router,
+):
     app.include_router(router, prefix="/api")
 
 

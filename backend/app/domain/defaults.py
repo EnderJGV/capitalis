@@ -35,3 +35,13 @@ DEFAULT_CATEGORIES_BY_LANGUAGE: dict[Language, list[tuple[str, TxType, str, str]
         ("Other expenses", "expense", "#64788F", "📦"),
     ],
 }
+
+#: Categoría de gasto donde se registran las comisiones de las transferencias (se crea si falta).
+FEE_CATEGORY: dict[Language, tuple[str, str, str]] = {
+    "es": ("Comisiones bancarias", "#64788F", "🏦"),
+    "pt": ("Tarifas bancárias", "#64788F", "🏦"),
+    "en": ("Bank fees", "#64788F", "🏦"),
+}
+
+#: Nombre de la cuenta que se crea para los movimientos anteriores a las cuentas.
+MAIN_ACCOUNT_NAME: dict[Language, str] = {"es": "Cuenta principal", "pt": "Conta principal", "en": "Main account"}

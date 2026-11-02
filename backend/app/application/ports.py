@@ -1,12 +1,25 @@
+from datetime import date
+from decimal import Decimal
 from typing import Callable, Protocol
 
-from ..domain.repositories import CategoryRepository, ReportRepository, TransactionRepository, UserRepository
+from ..domain.repositories import (
+    AccountRepository,
+    CategoryRepository,
+    RateRepository,
+    ReportRepository,
+    TransactionRepository,
+    TransferRepository,
+    UserRepository,
+)
 
 
 class UnitOfWork(Protocol):
     users: UserRepository
     categories: CategoryRepository
+    accounts: AccountRepository
     transactions: TransactionRepository
+    transfers: TransferRepository
+    rates: RateRepository
     reports: ReportRepository
 
     def __enter__(self) -> "UnitOfWork": ...
@@ -25,3 +38,10 @@ class PasswordHasher(Protocol):
 class TokenService(Protocol):
     def create(self, user_id: int) -> str: ...
     def decode(self, token: str) -> int | None: ...
+
+
+class ExchangeRateProvider(Protocol):
+    def usd_rates(self, on: date | None) -> dict[str, Decimal] | None:
+        """Cotizaciones con base USD (códigos en mayúsculas) del día `on`, o las más recientes si es None.
+        Devuelve None si no se pudieron obtener."""
+        ...

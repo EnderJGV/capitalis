@@ -1,11 +1,22 @@
 from datetime import date
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, computed_field
 
 TxType = Literal["income", "expense"]
-Currency = Literal["BRL", "USD", "EUR", "ARS", "MXN", "CLP", "COP", "PEN"]
+def _valid_currency(code: str) -> str:
+    from ..infrastructure.catalog import get_catalog
+
+    code = code.upper()
+    if code not in get_catalog().currencies:
+        raise ValueError(f"Moneda no soportada: {code}")
+    return code
+
+
+# Cualquier moneda del catálogo mundial (ISO 4217 con cotización disponible).
+Currency = Annotated[str, Field(min_length=3, max_length=3), AfterValidator(_valid_currency)]
+AccountKind = Literal["checking", "savings", "digital", "cash", "investment"]
 
 
 Language = Literal["es", "pt", "en"]
@@ -56,12 +67,59 @@ class CategoryOut(CategoryIn):
     id: int
 
 
+class AccountIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    currency: Currency
+    kind: AccountKind = "checking"
+    institution: str | None = Field(default=None, max_length=40)
+    initial_balance: Decimal = Field(default=Decimal("0"), max_digits=14, decimal_places=2)
+    archived: bool = False
+
+
+class InstitutionInfo(BaseModel):
+    name: str
+    kind: str
+    domain: str | None = None
+    color: str | None = None
+
+
+class AccountRef(BaseModel):
+    """Datos mínimos de una cuenta para mostrarla junto a un movimiento o transferencia."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    currency: str
+    kind: str
+    institution: str | None
+
+    @computed_field
+    @property
+    def institution_info(self) -> InstitutionInfo | None:
+        """Nombre, dominio (logo) y color de la institución, tomados del catálogo."""
+        from ..infrastructure.catalog import get_catalog
+
+        found = get_catalog().get(self.institution) if self.institution else None
+        if not found:
+            return None
+        return InstitutionInfo(name=found.name, kind=found.kind, domain=found.domain, color=found.color)
+
+
+class AccountOut(AccountRef):
+    initial_balance: Decimal
+    archived: bool
+    balance: Decimal
+    #: Saldo en la moneda principal del usuario (None si no hay cotización).
+    converted_balance: Decimal | None = None
+
+
 class TransactionIn(BaseModel):
     type: TxType
     amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     description: str = Field(default="", max_length=255)
     date: date
     category_id: int | None = None
+    account_id: int | None = None
 
 
 class TransactionOut(BaseModel):
@@ -73,6 +131,42 @@ class TransactionOut(BaseModel):
     date: date
     category_id: int | None
     category: CategoryOut | None = None
+    account_id: int
+    account: AccountRef | None = None
+    #: Si no es None, es la comisión de esa transferencia (se edita desde la transferencia).
+    transfer_id: int | None = None
+
+
+class TransferIn(BaseModel):
+    from_account_id: int
+    to_account_id: int
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    received_amount: Decimal | None = Field(default=None, gt=0, max_digits=14, decimal_places=2)
+    fee: Decimal = Field(default=Decimal("0"), ge=0, max_digits=14, decimal_places=2)
+    date: date
+    description: str = Field(default="", max_length=255)
+
+
+class TransferOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    from_account_id: int
+    to_account_id: int
+    from_account: AccountRef | None = None
+    to_account: AccountRef | None = None
+    amount: Decimal
+    received_amount: Decimal
+    rate: Decimal
+    fee: Decimal
+    date: date
+    description: str
+
+
+class RateOut(BaseModel):
+    base: str
+    quote: str
+    rate: Decimal
+    date: date
 
 
 class CategoryTotalOut(BaseModel):
@@ -100,3 +194,7 @@ class SummaryOut(BaseModel):
     total_balance: Decimal
     expenses_by_category: list[CategoryTotalOut]
     last_months: list[MonthTotalOut]
+    currency: str
+    approximate: bool
+    missing_currencies: list[str]
+    accounts: list[AccountOut]
