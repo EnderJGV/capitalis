@@ -7,9 +7,27 @@ from sqlalchemy import case, delete, func, literal, or_, select, union_all
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from ...domain.entities import Account, Category, CategoryTotal, CurrencyAmount, Transaction, Transfer, TxType, User
+from ...domain.entities import (
+    Account,
+    Category,
+    CategoryTotal,
+    CreditCard,
+    CurrencyAmount,
+    Transaction,
+    Transfer,
+    TxType,
+    User,
+)
 from ...domain.exceptions import DuplicateAccount, DuplicateCategory, EmailAlreadyRegistered
-from .models import AccountModel, CategoryModel, ExchangeRateModel, TransactionModel, TransferModel, UserModel
+from .models import (
+    AccountModel,
+    CategoryModel,
+    CreditCardModel,
+    ExchangeRateModel,
+    TransactionModel,
+    TransferModel,
+    UserModel,
+)
 
 
 def _user(m: UserModel) -> User:
@@ -20,6 +38,17 @@ def _user(m: UserModel) -> User:
 
 def _category(m: CategoryModel) -> Category:
     return Category(id=m.id, user_id=m.user_id, name=m.name, type=m.type, color=m.color, icon=m.icon)
+
+
+def _card(m: CreditCardModel) -> CreditCard:
+    return CreditCard(
+        network=m.network,
+        credit_limit=m.credit_limit,
+        closing_day=m.closing_day,
+        due_day=m.due_day,
+        last4=m.last4,
+        payment_account_id=m.payment_account_id,
+    )
 
 
 def _account(m: AccountModel, balance: Decimal | None = None) -> Account:
@@ -33,6 +62,7 @@ def _account(m: AccountModel, balance: Decimal | None = None) -> Account:
         initial_balance=m.initial_balance,
         archived=m.archived,
         balance=balance,
+        card=_card(m.card) if m.card else None,
     )
 
 
@@ -49,7 +79,40 @@ def _transaction(m: TransactionModel) -> Transaction:
         account_id=m.account_id,
         account=_account(m.account) if m.account else None,
         transfer_id=m.transfer_id,
+        installment_plan_id=m.installment_plan_id,
+        installment_number=m.installment_number,
+        installment_count=m.installment_count,
+        is_refund=m.is_refund,
+        original_amount=m.original_amount,
+        original_currency=m.original_currency,
+        exchange_rate=m.exchange_rate,
+        parent_id=m.parent_id,
     )
+
+
+def _sync_card(m: AccountModel, card: CreditCard | None) -> None:
+    """Crea, actualiza o quita la configuración de tarjeta de una cuenta."""
+    if card is None:
+        m.card = None
+        return
+    if m.card is None:
+        m.card = CreditCardModel()
+    c = m.card
+    c.network, c.last4, c.credit_limit = card.network, card.last4, card.credit_limit
+    c.closing_day, c.due_day, c.payment_account_id = card.closing_day, card.due_day, card.payment_account_id
+
+
+def _transaction_fields(m: TransactionModel, t: Transaction) -> None:
+    m.category_id, m.account_id, m.type = t.category_id, t.account_id, t.type
+    m.amount, m.description, m.date = t.amount, t.description, t.date
+    m.installment_plan_id, m.installment_number, m.installment_count = (
+        t.installment_plan_id,
+        t.installment_number,
+        t.installment_count,
+    )
+    m.is_refund = t.is_refund
+    m.original_amount, m.original_currency, m.exchange_rate = t.original_amount, t.original_currency, t.exchange_rate
+    m.parent_id = t.parent_id
 
 
 def _transfer(m: TransferModel) -> Transfer:
@@ -218,6 +281,7 @@ class SqlAccountRepository:
             initial_balance=account.initial_balance,
             archived=account.archived,
         )
+        _sync_card(m, account.card)
         self._s.add(m)
         self._flush()
         return self.get(account.user_id, m.id)
@@ -226,6 +290,7 @@ class SqlAccountRepository:
         m = self._owned(account.user_id, account.id)
         m.name, m.currency, m.kind = account.name, account.currency, account.kind
         m.institution, m.initial_balance, m.archived = account.institution, account.initial_balance, account.archived
+        _sync_card(m, account.card)
         self._flush()
         return self.get(account.user_id, account.id)
 
@@ -288,28 +353,15 @@ class SqlTransactionRepository:
         return _transaction(m) if m else None
 
     def add(self, transaction: Transaction) -> Transaction:
-        m = TransactionModel(
-            user_id=transaction.user_id,
-            category_id=transaction.category_id,
-            account_id=transaction.account_id,
-            transfer_id=transaction.transfer_id,
-            type=transaction.type,
-            amount=transaction.amount,
-            description=transaction.description,
-            date=transaction.date,
-        )
+        m = TransactionModel(user_id=transaction.user_id, transfer_id=transaction.transfer_id)
+        _transaction_fields(m, transaction)
         self._s.add(m)
         self._s.flush()
         return self.get(transaction.user_id, m.id)
 
     def update(self, transaction: Transaction) -> Transaction:
         m = self._owned(transaction.user_id, transaction.id)
-        m.category_id = transaction.category_id
-        m.account_id = transaction.account_id
-        m.type = transaction.type
-        m.amount = transaction.amount
-        m.description = transaction.description
-        m.date = transaction.date
+        _transaction_fields(m, transaction)
         self._s.flush()
         self._s.expire(m)
         return self.get(transaction.user_id, transaction.id)

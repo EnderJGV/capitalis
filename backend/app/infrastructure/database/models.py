@@ -1,7 +1,18 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index, Numeric, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Numeric,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .session import Base
@@ -49,6 +60,52 @@ class AccountModel(Base):
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
+    #: Solo en las tarjetas de crédito (kind = "credit_card").
+    card: Mapped["CreditCardModel | None"] = relationship(
+        foreign_keys="CreditCardModel.account_id", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class CreditCardModel(Base):
+    """Configuración de una tarjeta. Nunca se guarda el número completo ni el código de seguridad."""
+
+    __tablename__ = "credit_cards"
+    __table_args__ = (
+        CheckConstraint("closing_day BETWEEN 1 AND 31 AND due_day BETWEEN 1 AND 31", name="ck_credit_cards_days"),
+        CheckConstraint("credit_limit >= 0", name="ck_credit_cards_limit_not_negative"),
+    )
+
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), primary_key=True)
+    network: Mapped[str] = mapped_column(String(12))
+    last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    credit_limit: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    closing_day: Mapped[int] = mapped_column(SmallInteger)
+    due_day: Mapped[int] = mapped_column(SmallInteger)
+    payment_account_id: Mapped[int | None] = mapped_column(
+        ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class InstallmentPlanModel(Base):
+    """Compra en cuotas; cada cuota es un movimiento con `installment_plan_id`."""
+
+    __tablename__ = "installment_plans"
+    __table_args__ = (
+        CheckConstraint("installments BETWEEN 2 AND 48", name="ck_installment_plans_count"),
+        CheckConstraint("total_amount > 0", name="ck_installment_plans_total_positive"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"))
+    category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
+    description: Mapped[str] = mapped_column(String(255), default="")
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    installments: Mapped[int] = mapped_column(SmallInteger)
+    purchase_date: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
 
 class TransferModel(Base):
     __tablename__ = "transfers"
@@ -91,6 +148,7 @@ class TransactionModel(Base):
     __table_args__ = (
         CheckConstraint("amount > 0", name="ck_transactions_amount_positive"),
         Index("ix_transactions_user_date", "user_id", "date"),
+        Index("ix_transactions_account_date", "account_id", "date"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -99,6 +157,20 @@ class TransactionModel(Base):
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), index=True)
     # Comisión de una transferencia: se borra junto con ella.
     transfer_id: Mapped[int | None] = mapped_column(ForeignKey("transfers.id", ondelete="CASCADE"), nullable=True)
+    # Cuota de una compra en cuotas: se borra junto con el plan.
+    installment_plan_id: Mapped[int | None] = mapped_column(
+        ForeignKey("installment_plans.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    installment_number: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    installment_count: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    is_refund: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    original_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    original_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    exchange_rate: Mapped[Decimal | None] = mapped_column(Numeric(18, 8), nullable=True)
+    # Tarifa internacional (IOF) de una compra en otra moneda: se borra junto con la compra.
+    parent_id: Mapped[int | None] = mapped_column(
+        ForeignKey("transactions.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     type: Mapped[str] = mapped_column(String(7))
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     description: Mapped[str] = mapped_column(String(255), default="")

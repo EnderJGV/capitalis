@@ -92,3 +92,35 @@ class RateUnavailable(DomainError):
 
 class UnknownInstitution(DomainError):
     message = "La institución no existe en el catálogo"
+
+
+class CardNotFound(DomainError):
+    message = "Tarjeta no encontrada"
+
+
+class InvalidCardDays(DomainError):
+    message = "Los días de cierre y de vencimiento deben estar entre 1 y 31"
+
+
+class InvalidLast4(DomainError):
+    message = "Escribe solo los últimos 4 dígitos de la tarjeta"
+
+
+class InvalidCreditLimit(DomainError):
+    message = "El límite no puede ser negativo"
+
+
+class PaymentAccountIsCard(DomainError):
+    message = "La cuenta de pago debe ser una cuenta, no una tarjeta"
+
+
+class InvalidInstallments(DomainError):
+    message = "El número de cuotas debe estar entre 2 y 48"
+
+
+class InstallmentsOnlyOnCards(DomainError):
+    message = "Las compras en cuotas solo se registran en tarjetas de crédito"
+
+
+class RefundOnlyOnCards(DomainError):
+    message = "Los reembolsos solo se registran en tarjetas de crédito"

@@ -16,6 +16,7 @@ def _valid_currency(code: str) -> str:
 
 # Cualquier moneda del catálogo mundial (ISO 4217 con cotización disponible).
 Currency = Annotated[str, Field(min_length=3, max_length=3), AfterValidator(_valid_currency)]
+# Las tarjetas ("credit_card") se crean y editan en /cards, con su configuración.
 AccountKind = Literal["checking", "savings", "digital", "cash", "investment"]
 
 
