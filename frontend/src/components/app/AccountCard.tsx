@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import { ArchiveIcon, ChevronRightIcon } from 'lucide-react'
 import type { Account } from '@/domain/types'
 import { useI18n } from '@/i18n/I18nProvider'
-import { findInstitution } from '@/lib/institutions'
 import { cn } from '@/lib/utils'
 import { useMoney } from '@/utils/format'
 import { InstitutionLogo } from './InstitutionLogo'
@@ -19,7 +18,7 @@ interface Props {
 export function AccountCard({ account, mainCurrency, compact = false, className }: Props) {
   const { t } = useI18n()
   const money = useMoney()
-  const institution = findInstitution(account.institution)
+  const institution = account.institution_info
   const negative = Number(account.balance) < 0
 
   return (
@@ -32,7 +31,12 @@ export function AccountCard({ account, mainCurrency, compact = false, className 
       )}
     >
       <div className="flex items-center gap-3">
-        <InstitutionLogo institution={account.institution} name={account.name} size={compact ? 'sm' : 'md'} />
+        <InstitutionLogo
+          institution={account.institution}
+          info={account.institution_info}
+          name={account.name}
+          size={compact ? 'sm' : 'md'}
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{account.name}</p>
           <p className="truncate type-caption text-muted-foreground">

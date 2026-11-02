@@ -250,7 +250,12 @@ export default function Movements() {
           />
           {selectedAccount && (
             <FilterPill
-              icon={<InstitutionLogo institution={selectedAccount.institution} name={selectedAccount.name} size="xs" />}
+              icon={<InstitutionLogo
+                  institution={selectedAccount.institution}
+                  info={selectedAccount.institution_info}
+                  name={selectedAccount.name}
+                  size="xs"
+                />}
               label={selectedAccount.name}
               onRemove={() => setAccountId(null)}
               removeLabel={format(t.movements.removeFilter, { name: selectedAccount.name })}

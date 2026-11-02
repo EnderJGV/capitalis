@@ -13,10 +13,10 @@ import { useCountUp } from '@/hooks/use-count-up'
 import { useI18n } from '@/i18n/I18nProvider'
 import { format } from '@/i18n/runtime'
 import { accountsApi } from '@/services/api'
-import { useMoney } from '@/utils/format'
+import { currencyName, useMoney } from '@/utils/format'
 
 export default function Accounts() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { user } = useAuth()
   const money = useMoney()
   const { openAccount, openTransfer, revision } = useQuickActions()
@@ -111,7 +111,7 @@ export default function Accounts() {
                     <LandmarkIcon className="size-5 text-muted-foreground" strokeWidth={1.75} aria-hidden />
                     {currency}
                     <span className="type-meta font-normal text-muted-foreground">
-                      {t.currencies[currency as keyof typeof t.currencies] ?? ''}
+                      {currencyName(currency, locale)}
                     </span>
                   </h2>
                   <span className="tabular type-meta font-semibold">{money(subtotal, currency)}</span>

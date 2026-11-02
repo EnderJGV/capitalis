@@ -178,7 +178,7 @@ function FiltersPanel({
               </CategoryOption>
               {accounts.map((a) => (
                 <CategoryOption key={a.id} selected={accountId === a.id} onClick={() => onAccountChange(a.id)}>
-                  <InstitutionLogo institution={a.institution} name={a.name} size="xs" />
+                  <InstitutionLogo institution={a.institution} info={a.institution_info} name={a.name} size="xs" />
                   <span className="truncate">{a.name}</span>
                   <span className="ml-1 type-caption text-muted-foreground">{a.currency}</span>
                 </CategoryOption>

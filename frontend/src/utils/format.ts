@@ -97,3 +97,37 @@ export function useCurrencySymbol(): string {
       ?.value ?? currency
   )
 }
+
+const displayNames = new Map<string, Intl.DisplayNames>()
+
+function names(type: 'region' | 'currency', locale: string): Intl.DisplayNames | null {
+  const key = `${type}:${locale}`
+  if (!displayNames.has(key)) {
+    try {
+      displayNames.set(key, new Intl.DisplayNames([locale], { type }))
+    } catch {
+      return null
+    }
+  }
+  return displayNames.get(key) ?? null
+}
+
+/** "BR" → "Brasil" / "Brazil", en el idioma del usuario. */
+export function countryName(code: string, fallback = code, locale = getLocale()): string {
+  if (code === 'INTL') return getMessages().accountEditor.countries.INTL
+  try {
+    return names('region', locale)?.of(code) ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+/** "BRL" → "real brasileño" / "Brazilian Real", en el idioma del usuario. */
+export function currencyName(code: string, locale = getLocale()): string {
+  try {
+    const name = names('currency', locale)?.of(code) ?? code
+    return capitalize(name)
+  } catch {
+    return code
+  }
+}

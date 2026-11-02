@@ -49,7 +49,7 @@ export function AccountPicker({ id, accounts, value, onChange, exclude, title, c
     >
       {selected ? (
         <>
-          <InstitutionLogo institution={selected.institution} name={selected.name} size="sm" />
+          <InstitutionLogo institution={selected.institution} info={selected.institution_info} name={selected.name} size="sm" />
           <span className="min-w-0 flex-1">
             <span className="block truncate type-meta font-semibold">{selected.name}</span>
             <span className="tabular block truncate type-caption text-muted-foreground">
@@ -77,7 +77,7 @@ export function AccountPicker({ id, accounts, value, onChange, exclude, title, c
               a.id === value && 'bg-accent',
             )}
           >
-            <InstitutionLogo institution={a.institution} name={a.name} size={isDesktop ? 'sm' : 'md'} />
+            <InstitutionLogo institution={a.institution} info={a.institution_info} name={a.name} size={isDesktop ? 'sm' : 'md'} />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{a.name}</span>
               <span className="block truncate type-caption text-muted-foreground">{t.accounts.kinds[a.kind]}</span>

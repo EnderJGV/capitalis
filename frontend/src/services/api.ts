@@ -2,6 +2,9 @@ import type {
   Account,
   AccountInput,
   AuthResponse,
+  CatalogCountry,
+  CatalogInstitution,
+  InstitutionKind,
   Category,
   CategoryInput,
   Currency,
@@ -65,4 +68,11 @@ export const transfersApi = {
 export const ratesApi = {
   /** Cotización aproximada: 1 `from` = rate `to` en la fecha indicada. */
   get: (from: Currency, to: Currency, date?: string) => http<Rate>('/rates', { query: { from, to, date } }),
+}
+
+export const catalogApi = {
+  countries: () => http<CatalogCountry[]>('/catalog/countries'),
+  currencies: () => http<string[]>('/catalog/currencies'),
+  institutions: (params: { country?: string; q?: string; kind?: InstitutionKind | ''; offset?: number; limit?: number }) =>
+    http<{ total: number; items: CatalogInstitution[] }>('/catalog/institutions', { query: { ...params } }),
 }

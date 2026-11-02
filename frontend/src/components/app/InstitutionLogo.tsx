@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BanknoteIcon, LandmarkIcon } from 'lucide-react'
-import { CASH_ID, findInstitution } from '@/lib/institutions'
+import type { InstitutionInfo } from '@/domain/types'
+import { CASH_ID } from '@/lib/institutions'
 import { cn } from '@/lib/utils'
 
 const SIZES = {
@@ -11,8 +12,10 @@ const SIZES = {
 } as const
 
 interface Props {
-  /** Id del catálogo (`accounts.institution`), "cash" o null. */
+  /** Id de la institución ("cash" para efectivo, null/otra si no hay). */
   institution: string | null | undefined
+  /** Dominio y color de la institución (de `account.institution_info` o del catálogo). */
+  info?: Pick<InstitutionInfo, 'domain' | 'color'> & { name?: string } | null
   /** Nombre visible: se usa para las iniciales cuando no hay logo. */
   name: string
   size?: keyof typeof SIZES
@@ -29,10 +32,9 @@ function initials(name: string): string {
 /**
  * Logo de la institución pedido en tiempo real a partir de su dominio (servicio de íconos de Google).
  * Al servicio solo le llega el dominio del banco. Si no hay dominio o la imagen falla, se muestra un
- * monograma con el color de la marca.
+ * monograma con el color de la marca (o un color estable derivado del nombre).
  */
-export function InstitutionLogo({ institution, name, size = 'md', className }: Props) {
-  const info = findInstitution(institution)
+export function InstitutionLogo({ institution, info, name, size = 'md', className }: Props) {
   const [failed, setFailed] = useState(false)
   const base = cn('relative flex shrink-0 items-center justify-center overflow-hidden font-bold', SIZES[size], className)
 
@@ -44,7 +46,7 @@ export function InstitutionLogo({ institution, name, size = 'md', className }: P
     )
   }
 
-  if (!info) {
+  if (!institution || !info) {
     return (
       <span className={cn(base, 'bg-accent text-accent-foreground')} aria-hidden>
         <LandmarkIcon className="size-1/2" strokeWidth={1.75} />
@@ -70,8 +72,15 @@ export function InstitutionLogo({ institution, name, size = 'md', className }: P
   }
 
   return (
-    <span className={cn(base, 'text-white')} style={{ background: info.color }} aria-hidden>
-      {initials(info.name || name)}
+    <span className={cn(base, 'text-white')} style={{ background: info.color ?? hashColor(info.name ?? name) }} aria-hidden>
+      {initials(info.name ?? name)}
     </span>
   )
+}
+
+/** Color estable para instituciones sin color de marca (siempre el mismo para el mismo nombre). */
+function hashColor(text: string): string {
+  let h = 0
+  for (const ch of text) h = (h * 31 + ch.charCodeAt(0)) % 360
+  return `hsl(${h} 45% 38%)`
 }

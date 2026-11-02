@@ -22,7 +22,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { Account, Transaction, Transfer } from '@/domain/types'
 import { useCountUp } from '@/hooks/use-count-up'
 import { useI18n } from '@/i18n/I18nProvider'
-import { findInstitution } from '@/lib/institutions'
 import { accountsApi, transactionsApi, transfersApi } from '@/services/api'
 import { useMoney } from '@/utils/format'
 
@@ -87,7 +86,7 @@ export default function AccountDetail() {
     }
   }
 
-  const institution = findInstitution(account?.institution)
+  const institution = account?.institution_info
 
   return (
     <>
@@ -110,7 +109,7 @@ export default function AccountDetail() {
         <section className="relative isolate overflow-hidden rounded-xl bg-sidebar p-5 text-sidebar-foreground sm:p-7">
           <BrandBackdrop className="-z-10" />
           <div className="flex items-center gap-3">
-            <InstitutionLogo institution={account.institution} name={account.name} size="lg" />
+            <InstitutionLogo institution={account.institution} info={account.institution_info} name={account.name} size="lg" />
             <div className="min-w-0 flex-1">
               <h1 className="type-heading truncate text-sidebar-accent-foreground">{account.name}</h1>
               <p className="truncate type-caption">

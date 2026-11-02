@@ -1,9 +1,34 @@
 export type TxType = 'income' | 'expense'
 
-export const CURRENCIES = [
-  'BRL', 'USD', 'EUR', 'ARS', 'MXN', 'CLP', 'COP', 'PEN', 'VES', 'GBP', 'CAD', 'UYU', 'PYG', 'BOB', 'DOP',
-] as const
-export type Currency = (typeof CURRENCIES)[number]
+/** Código ISO 4217 (BRL, USD, EUR…). La lista completa viene del catálogo del servidor. */
+export type Currency = string
+
+export type InstitutionKind = 'bank' | 'digital' | 'broker' | 'cooperative' | 'exchange'
+
+/** Institución del catálogo mundial (resultado de búsqueda). */
+export interface CatalogInstitution {
+  id: string
+  name: string
+  country: string
+  kind: InstitutionKind
+  domain: string | null
+  color: string | null
+}
+
+/** Lo que una cuenta necesita de su institución para dibujar el logo. */
+export interface InstitutionInfo {
+  name: string
+  kind: InstitutionKind
+  domain: string | null
+  color: string | null
+}
+
+export interface CatalogCountry {
+  code: string
+  name: string
+  currency: string | null
+  count: number
+}
 
 export interface User {
   id: number
@@ -39,8 +64,9 @@ export interface AccountRef {
   name: string
   currency: Currency
   kind: AccountKind
-  /** Id del catálogo de instituciones (lib/institutions.ts) o null. */
+  /** Id de la institución en el catálogo, "cash" (efectivo) o null. */
   institution: string | null
+  institution_info: InstitutionInfo | null
 }
 
 export interface Account extends AccountRef {
