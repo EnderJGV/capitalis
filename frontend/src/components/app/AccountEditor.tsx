@@ -36,7 +36,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n/I18nProvider'
 import { format } from '@/i18n/runtime'
 import { countryByCode, useCatalogCountries } from '@/lib/catalog'
-import { CASH_ID, INSTITUTION_KINDS, suggestedAccountKind } from '@/lib/institutions'
+import { CASH_ID, suggestedAccountKind } from '@/lib/institutions'
 import { cn } from '@/lib/utils'
 import { accountsApi, catalogApi } from '@/services/api'
 import { countryName } from '@/utils/format'
@@ -45,6 +45,7 @@ import { CountryPicker } from './CountryPicker'
 import { CurrencyPicker } from './CurrencyPicker'
 import { CountryFlag } from './FlagIcon'
 import { InstitutionLogo } from './InstitutionLogo'
+import { KindPicker, type KindChoice } from './KindPicker'
 
 export type AccountEditorResult = 'created' | 'updated' | 'deleted'
 
@@ -111,38 +112,34 @@ function InstitutionStep({ onPick }: { onPick: (choice: Choice) => void }) {
   const { user } = useAuth()
   const countries = useCatalogCountries()
   const [country, setCountry] = useState<string>('all')
-  const [kind, setKind] = useState<InstitutionKind | ''>('')
+  const [kind, setKind] = useState<KindChoice>('')
   const [query, setQuery] = useState('')
   const q = useDebounced(query.trim(), 250)
   const [items, setItems] = useState<CatalogInstitution[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const picked = useRef(false)
 
-  // País inicial: el de la moneda principal con más instituciones (BRL → Brasil, VES → Venezuela…).
-  const suggested = (() => {
-    const main = user?.currency
-    return countries
-      .filter((c) => c.currency === main && c.count > 0)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 3)
-      .map((c) => c.code)
-  })()
-  useEffect(() => {
-    if (!picked.current && suggested.length) {
-      picked.current = true
-      setCountry(suggested[0])
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countries])
+  // Por defecto se busca en todo el mundo; el país de la moneda principal queda sugerido en el selector.
+  const suggested = countries
+    .filter((c) => c.currency === user?.currency && c.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3)
+    .map((c) => c.code)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(false)
     catalogApi
-      .institutions({ country: country === 'all' ? undefined : country, q: q || undefined, kind, offset: 0, limit: PAGE })
+      .institutions({
+        country: country === 'all' ? undefined : country,
+        q: q || undefined,
+        kind,
+        prefer: suggested[0],
+        offset: 0,
+        limit: PAGE,
+      })
       .then((page) => {
         if (cancelled) return
         setItems(page.items)
@@ -153,13 +150,15 @@ function InstitutionStep({ onPick }: { onPick: (choice: Choice) => void }) {
     return () => {
       cancelled = true
     }
-  }, [country, q, kind])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country, q, kind, suggested[0]])
 
   async function showMore() {
     const page = await catalogApi.institutions({
       country: country === 'all' ? undefined : country,
       q: q || undefined,
       kind,
+      prefer: suggested[0],
       offset: items.length,
       limit: PAGE,
     })
@@ -176,37 +175,28 @@ function InstitutionStep({ onPick }: { onPick: (choice: Choice) => void }) {
         <SheetDescription>{t.accountEditor.pickDescription}</SheetDescription>
       </SheetHeader>
 
-      {/* Búsqueda + país en una sola fila, y tipos de institución */}
-      <div className="flex shrink-0 flex-col gap-3 border-b px-5 py-3">
-        <div className="flex gap-2">
-          <div className="relative min-w-0 flex-1">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              autoFocus
-              aria-label={t.accountEditor.search}
-              placeholder={t.accountEditor.search}
-              className="h-11 pl-9 sm:h-10"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
+      {/* Filtros: la búsqueda ocupa todo el ancho; país y tipo debajo, lado a lado */}
+      <div className="flex shrink-0 flex-col gap-2 border-b px-5 py-3">
+        <div className="relative min-w-0 flex-1">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            autoFocus
+            aria-label={t.accountEditor.search}
+            placeholder={t.accountEditor.search}
+            className="h-11 pl-9 sm:h-10"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
           <CountryPicker
             countries={countries}
             value={country}
             onChange={setCountry}
             suggested={suggested}
-            className="max-w-[45%] sm:max-w-44"
+            className="w-full"
           />
-        </div>
-        <div className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <KindChip selected={kind === ''} onClick={() => setKind('')}>
-            {t.accountEditor.typeAll}
-          </KindChip>
-          {INSTITUTION_KINDS.map((k) => (
-            <KindChip key={k} selected={kind === k} onClick={() => setKind(k)}>
-              {t.accountEditor.types[k]}
-            </KindChip>
-          ))}
+          <KindPicker value={kind} onChange={setKind} className="w-full" />
         </div>
       </div>
 
@@ -286,22 +276,6 @@ function InstitutionStep({ onPick }: { onPick: (choice: Choice) => void }) {
         )}
       </div>
     </>
-  )
-}
-
-function KindChip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={onClick}
-      className={cn(
-        'flex h-9 shrink-0 items-center rounded-full border px-3.5 type-caption font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40',
-        selected ? 'border-primary bg-primary/10 text-foreground' : 'bg-card text-muted-foreground hover:bg-muted',
-      )}
-    >
-      {children}
-    </button>
   )
 }
 

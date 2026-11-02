@@ -81,6 +81,7 @@ class InstitutionCatalog:
         country: str | None = None,
         query: str | None = None,
         kind: str | None = None,
+        prefer: str | None = None,
         offset: int = 0,
         limit: int = 60,
     ) -> tuple[int, list[Institution]]:
@@ -101,7 +102,8 @@ class InstitutionCatalog:
             ranked.sort(key=lambda pair: pair[0])
             pool = [i for _, i in ranked]
         elif not country:
-            pool = sorted(pool, key=lambda i: -i.score)
+            # En todo el mundo: primero el país preferido (el de la moneda del usuario), luego el resto.
+            pool = sorted(pool, key=lambda i: (i.country != prefer, -i.score))
         return len(pool), pool[offset : offset + limit]
 
 

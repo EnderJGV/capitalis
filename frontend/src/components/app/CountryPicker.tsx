@@ -65,12 +65,12 @@ export function CountryPicker({ countries, value, onChange, suggested = [], clas
       aria-label={`${t.accountEditor.country}: ${label}`}
       onClick={isDesktop ? undefined : () => setOpen(true)}
       className={cn(
-        'flex h-11 min-w-0 shrink-0 items-center gap-2 rounded-lg border bg-card px-3 text-left transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:h-10',
+        'flex h-11 min-w-0 items-center gap-2 rounded-lg border bg-card px-3 text-left transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:h-10',
         className,
       )}
     >
       {value === 'all' ? <GlobeIcon className="size-4 shrink-0 text-muted-foreground" /> : <CountryFlag code={value} />}
-      <span className="truncate type-meta font-medium">{label}</span>
+      <span className="min-w-0 flex-1 truncate type-meta font-medium">{label}</span>
       <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
     </button>
   )

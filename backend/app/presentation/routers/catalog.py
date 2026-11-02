@@ -51,13 +51,19 @@ def institutions(
     country: str | None = Query(default=None, max_length=8),
     q: str | None = Query(default=None, max_length=80),
     kind: str | None = Query(default=None, pattern="^(bank|digital|broker|cooperative|exchange)$"),
+    prefer: str | None = Query(default=None, max_length=8, description="País que va primero en la búsqueda mundial"),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=60, ge=1, le=200),
     _: User = Depends(get_current_user),
 ):
     """Búsqueda sin acentos por nombre, razón social o alias; sin `country`, busca en todo el mundo."""
     total, items = get_catalog().search(
-        country=country.upper() if country else None, query=q, kind=kind, offset=offset, limit=limit
+        country=country.upper() if country else None,
+        query=q,
+        kind=kind,
+        prefer=prefer.upper() if prefer else None,
+        offset=offset,
+        limit=limit,
     )
     return InstitutionPage(total=total, items=[institution_out(i) for i in items])
 

@@ -200,6 +200,15 @@ export const pt: Messages = {
   },
   accountEditor: {
     countries: { INTL: 'Digitais' },
+    typeFilter: 'Tipo de instituição',
+    typeHints: {
+      all: 'Todas as instituições',
+      bank: 'Contas correntes e poupança',
+      digital: 'Fintechs, carteiras e bancos digitais',
+      broker: 'Ações, fundos e investimentos',
+      cooperative: 'Cooperativas de crédito',
+      exchange: 'Compra e venda de criptomoedas',
+    },
     typeAll: 'Todos',
     types: {
       bank: 'Bancos',
@@ -211,7 +220,7 @@ export const pt: Messages = {
     countrySearch: 'Buscar país…',
     suggestedCountries: 'Sugeridos',
     allCountriesList: 'Todos os países',
-    worldwide: 'No mundo todo',
+    worldwide: 'Mundo todo',
     showMore: 'Ver mais',
     results: '{n} resultados',
     loadError: 'Não foi possível carregar o catálogo',

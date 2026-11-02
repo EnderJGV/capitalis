@@ -200,6 +200,15 @@ export const en: Messages = {
   },
   accountEditor: {
     countries: { INTL: 'Digital' },
+    typeFilter: 'Institution type',
+    typeHints: {
+      all: 'All institutions',
+      bank: 'Checking and savings accounts',
+      digital: 'Fintechs, wallets and neobanks',
+      broker: 'Stocks, funds and investments',
+      cooperative: 'Credit unions and co-ops',
+      exchange: 'Buy and sell cryptocurrencies',
+    },
     typeAll: 'All',
     types: {
       bank: 'Banks',

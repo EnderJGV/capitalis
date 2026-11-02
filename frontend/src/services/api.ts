@@ -73,6 +73,14 @@ export const ratesApi = {
 export const catalogApi = {
   countries: () => http<CatalogCountry[]>('/catalog/countries'),
   currencies: () => http<string[]>('/catalog/currencies'),
-  institutions: (params: { country?: string; q?: string; kind?: InstitutionKind | ''; offset?: number; limit?: number }) =>
+  institutions: (params: {
+    country?: string
+    q?: string
+    kind?: InstitutionKind | ''
+    /** País que va primero en la búsqueda mundial. */
+    prefer?: string
+    offset?: number
+    limit?: number
+  }) =>
     http<{ total: number; items: CatalogInstitution[] }>('/catalog/institutions', { query: { ...params } }),
 }

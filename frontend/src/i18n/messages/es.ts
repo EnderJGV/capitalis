@@ -202,6 +202,15 @@ export const es = {
   },
   accountEditor: {
     countries: { INTL: 'Digitales' },
+    typeFilter: 'Tipo de institución',
+    typeHints: {
+      all: 'Todas las instituciones',
+      bank: 'Cuentas corrientes y de ahorro',
+      digital: 'Fintechs, billeteras y neobancos',
+      broker: 'Acciones, fondos e inversiones',
+      cooperative: 'Cooperativas y cajas de crédito',
+      exchange: 'Compra y venta de criptomonedas',
+    },
     typeAll: 'Todos',
     types: {
       bank: 'Bancos',
@@ -213,7 +222,7 @@ export const es = {
     countrySearch: 'Buscar país…',
     suggestedCountries: 'Sugeridos',
     allCountriesList: 'Todos los países',
-    worldwide: 'En todo el mundo',
+    worldwide: 'Todo el mundo',
     showMore: 'Ver más',
     results: '{n} resultados',
     loadError: 'No se pudo cargar el catálogo',
