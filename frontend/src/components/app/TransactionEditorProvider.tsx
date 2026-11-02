@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { toast } from 'sonner'
 import type { Account, Transaction, Transfer } from '@/domain/types'
 import { getMessages } from '@/i18n/runtime'
-import { accountsApi, transfersApi } from '@/services/api'
+import { accountsApi, transactionsApi, transfersApi } from '@/services/api'
 import { AccountEditor } from './AccountEditor'
 import { CardEditor } from './CardEditor'
 import { TransactionEditor } from './TransactionEditor'
@@ -87,6 +87,13 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
     if (found) setPanel({ kind: 'transfer', initial: found })
   }, [])
 
+  const openPurchaseOf = useCallback(async (fee: Transaction) => {
+    // La compra y su tarifa tienen la misma cuenta y la misma fecha.
+    const sameDay = await transactionsApi.list({ account_id: fee.account_id, start: fee.date, end: fee.date })
+    const purchase = sameDay.find((tx) => tx.id === fee.parent_id)
+    if (purchase) setPanel({ kind: 'transaction', initial: purchase })
+  }, [])
+
   const close = (open: boolean) => !open && setPanel(null)
 
   const value = useMemo(
@@ -105,6 +112,7 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
         onDone={(result) => done(getMessages().editor[result])}
         onCreateAccount={() => openAccount()}
         onOpenTransfer={(id) => void openTransferById(id)}
+        onOpenPurchase={(fee) => void openPurchaseOf(fee)}
       />
       <TransferEditor
         open={panel?.kind === 'transfer'}

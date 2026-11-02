@@ -206,6 +206,16 @@ export interface Transaction {
   installment_count: number | null
   /** La compra entera: editar o borrar una cuota cambia todas. */
   installment_plan: { id: number; total_amount: string; installments: number; purchase_date: string } | null
+  /** Ingreso en una tarjeta que devuelve una compra: resta del gasto de su categoría. */
+  is_refund: boolean
+  /** Compra en otra moneda: monto y moneda originales y el tipo de cambio aplicado. */
+  original_amount: string | null
+  original_currency: string | null
+  exchange_rate: string | null
+  /** Si no es null, es la tarifa internacional de esa compra (se edita desde la compra). */
+  parent_id: number | null
+  /** Monto de la tarifa internacional enlazada a esta compra. */
+  foreign_fee: string | null
 }
 
 export interface TransactionInput {
@@ -217,6 +227,11 @@ export interface TransactionInput {
   account_id: number | null
   /** Compra en cuotas (solo gastos de tarjeta): `amount` es el total. */
   installments?: number | null
+  is_refund?: boolean
+  original_amount?: string | null
+  original_currency?: string | null
+  /** % de tarifa internacional (IOF) sobre `amount`. */
+  foreign_fee_percent?: string | null
 }
 
 /** Compra en cuotas que todavía tiene cuotas por cargar. */

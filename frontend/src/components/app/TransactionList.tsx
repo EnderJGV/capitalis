@@ -120,6 +120,7 @@ export function TransactionList({
                         </span>
                         <span className="block truncate type-meta text-muted-foreground">
                           {item.tx.category?.name ?? t.common.noCategory}
+                          {item.tx.is_refund && ` · ${t.editor.refundLabel}`}
                           {item.tx.account && !accountId && ` · ${item.tx.account.name}`}
                         </span>
                       </span>
@@ -131,6 +132,11 @@ export function TransactionList({
                       >
                         {item.tx.type === 'income' ? '+' : '−'}
                         {money(item.tx.amount, item.tx.account?.currency)}
+                        {item.tx.original_currency && item.tx.original_amount && (
+                          <span className="block text-right type-caption font-normal text-muted-foreground">
+                            {money(item.tx.original_amount, item.tx.original_currency)}
+                          </span>
+                        )}
                       </span>
                     </button>
                   </li>

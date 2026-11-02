@@ -4,12 +4,14 @@ import {
   CalendarIcon,
   ArrowLeftRightIcon,
   CheckIcon,
+  GlobeIcon,
   LayersIcon,
   Loader2Icon,
   MinusIcon,
   PlusIcon,
   TagIcon,
   TextIcon,
+  Undo2Icon,
   Trash2Icon,
   WalletIcon,
 } from 'lucide-react'
@@ -35,14 +37,21 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { format } from '@/i18n/runtime'
 import { statementDueMonth } from '@/lib/cards'
 import { TYPE_ICON } from '@/lib/icons'
-import { cn } from '@/lib/utils'
 import type { Account, Category, Transaction, TxType } from '@/domain/types'
 import { categoriesApi, transactionsApi } from '@/services/api'
 import { monthLabel, toISODate, todayISO, useMoney } from '@/utils/format'
-import { AmountInput, amountToInput, parseAmount } from './AmountInput'
+import { AmountInput, amountToInput, decimalToInput, parseAmount, parseRate } from './AmountInput'
 import { AccountPicker } from './AccountPicker'
 import { CategoryAvatar } from './CategoryAvatar'
 import { EmptyState } from './EmptyState'
+import {
+  ForeignPurchaseFields,
+  parsePercent,
+  rememberedFeePercent,
+  rememberFeePercent,
+  type ForeignState,
+} from './ForeignPurchaseFields'
+import { SwitchRow } from './SwitchRow'
 
 export type EditorResult = 'created' | 'updated' | 'deleted'
 
@@ -86,9 +95,20 @@ interface Props {
   onCreateAccount: () => void
   /** Abre la transferencia dueña de una comisión. */
   onOpenTransfer: (transferId: number) => void
+  /** Abre la compra dueña de una tarifa internacional. */
+  onOpenPurchase: (fee: Transaction) => void
 }
 
-export function TransactionEditor({ open, onOpenChange, initial, accounts, onDone, onCreateAccount, onOpenTransfer }: Props) {
+export function TransactionEditor({
+  open,
+  onOpenChange,
+  initial,
+  accounts,
+  onDone,
+  onCreateAccount,
+  onOpenTransfer,
+  onOpenPurchase,
+}: Props) {
   const { t } = useI18n()
   const isDesktop = useMediaQuery('(min-width: 640px)')
   return (
@@ -113,6 +133,18 @@ export function TransactionEditor({ open, onOpenChange, initial, accounts, onDon
                 <Button size="lg" onClick={() => onOpenTransfer(initial.transfer_id!)}>
                   <ArrowLeftRightIcon />
                   {t.editor.openTransfer}
+                </Button>
+              }
+            />
+          ) : initial?.parent_id ? (
+            // Las tarifas internacionales se editan desde su compra.
+            <EmptyState
+              icon={GlobeIcon}
+              title={t.editor.feeLockedForeign}
+              action={
+                <Button size="lg" onClick={() => onOpenPurchase(initial)}>
+                  <GlobeIcon />
+                  {t.editor.openPurchase}
                 </Button>
               }
             />
@@ -150,7 +182,7 @@ interface FormProps {
 }
 
 function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [categories, setCategories] = useState<Category[]>([])
   const [accountId, setAccountId] = useState<number | null>(() => {
     if (initial) return initial.account_id
@@ -166,8 +198,27 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
   const [date, setDate] = useState(plan?.purchase_date ?? initial?.date ?? todayISO())
   /** 1 = un solo pago. */
   const [installments, setInstallments] = useState(plan?.installments ?? 1)
-  const canSplit = account?.kind === 'credit_card' && type === 'expense'
+  const isCard = account?.kind === 'credit_card'
+  const canSplit = isCard && type === 'expense'
   const split = canSplit && installments > 1
+  // Ingreso en una tarjeta: casi siempre es un reembolso (resta del gasto de su categoría).
+  const [refund, setRefund] = useState(initial ? initial.is_refund : true)
+  const isRefund = isCard && type === 'income' && refund
+  // Compra en otra moneda (un solo pago): el monto se calcula con el tipo de cambio.
+  const [foreignOn, setForeignOn] = useState(!!initial?.original_currency)
+  const [foreign, setForeign] = useState<ForeignState>(() => ({
+    currency: initial?.original_currency ?? 'USD',
+    original: initial?.original_amount ? amountToInput(initial.original_amount) : '',
+    rate: initial?.exchange_rate ? decimalToInput(Number(initial.exchange_rate), lang, 4) : '',
+    feePercent:
+      initial?.foreign_fee && Number(initial.amount) > 0
+        ? decimalToInput((Number(initial.foreign_fee) / Number(initial.amount)) * 100, lang, 2)
+        : initial
+          ? ''
+          : rememberedFeePercent(),
+    rateTouched: !!initial?.exchange_rate,
+  }))
+  const isForeign = canSplit && !split && foreignOn && foreign.currency !== account?.currency
   const [categoryId, setCategoryId] = useState<number | null>(initial?.category_id ?? null)
   const [description, setDescription] = useState(initial?.description ?? '')
   const [error, setError] = useState('')
@@ -177,7 +228,8 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
     categoriesApi.list().then(setCategories).catch(() => setCategories([]))
   }, [])
 
-  const options = categories.filter((c) => c.type === type)
+  // Un reembolso va en la categoría del gasto que devuelve.
+  const options = categories.filter((c) => c.type === (isRefund ? 'expense' : type))
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -190,6 +242,12 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
       setError(t.errors.codes.AccountRequired)
       return
     }
+    const original = isForeign ? parseAmount(foreign.original) : null
+    if (isForeign && (!original || !parseRate(foreign.rate))) {
+      setError(t.editor.foreignError)
+      return
+    }
+    const percent = isForeign ? parsePercent(foreign.feePercent) : null
     setError('')
     setSaving(true)
     rememberAccount(accountId)
@@ -201,7 +259,12 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
       category_id: categoryId,
       account_id: accountId,
       installments: split ? installments : null,
+      is_refund: isRefund,
+      original_amount: original,
+      original_currency: isForeign ? foreign.currency : null,
+      foreign_fee_percent: percent !== null ? percent.toFixed(2) : null,
     }
+    if (isForeign) rememberFeePercent(foreign.feePercent)
     try {
       if (initial) await transactionsApi.update(initial.id, data)
       else await transactionsApi.create(data)
@@ -266,10 +329,47 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
           <AccountPicker id="tx-account" accounts={accounts} value={accountId} onChange={setAccountId} />
         </div>
 
+        {isCard && type === 'income' && (
+          <SwitchRow
+            id="tx-refund"
+            icon={Undo2Icon}
+            label={t.editor.refund}
+            hint={t.editor.refundHint}
+            checked={refund}
+            onCheckedChange={(on) => {
+              setRefund(on)
+              setCategoryId(null)
+            }}
+          />
+        )}
+
+        {canSplit && !split && account && (
+          <SwitchRow
+            id="tx-foreign"
+            icon={GlobeIcon}
+            label={t.editor.foreign}
+            hint={foreignOn ? undefined : format(t.editor.foreignHint, { currency: account.currency })}
+            checked={foreignOn}
+            onCheckedChange={setForeignOn}
+          >
+            <ForeignPurchaseFields
+              value={foreign}
+              onChange={setForeign}
+              cardCurrency={account.currency}
+              date={date}
+              onConverted={setAmount}
+            />
+          </SwitchRow>
+        )}
+
         <div className="flex flex-col gap-2">
           <Label htmlFor="tx-amount">
             <BanknoteIcon className="size-4 text-muted-foreground" />
-            {split ? t.editor.totalAmount : t.editor.amount}
+            {split
+              ? t.editor.totalAmount
+              : isForeign && account
+                ? format(t.editor.convertedAmount, { currency: account.currency })
+                : t.editor.amount}
           </Label>
           <AmountInput
             id="tx-amount"
@@ -279,7 +379,7 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
             onChange={setAmount}
             aria-invalid={!!error && !parseAmount(amount)}
           />
-          {canSplit && account?.card && (
+          {canSplit && !isForeign && account?.card && (
             <InstallmentsField
               value={installments}
               onChange={setInstallments}
@@ -433,35 +533,15 @@ function InstallmentsField({
   const base = total ? Math.floor((Number(total) * 100) / value) / 100 : null
 
   return (
-    <div className={cn('mt-1 flex flex-col gap-3 rounded-lg border px-3 py-2.5 transition-colors', on && 'border-primary/40 bg-primary/5')}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="min-w-0">
-          <span id="tx-installments-label" className="flex items-center gap-2 type-meta font-medium">
-            <LayersIcon className="size-4 text-muted-foreground" aria-hidden />
-            {t.editor.installments}
-          </span>
-          {!on && <span className="block type-caption text-muted-foreground">{t.editor.installmentsHint}</span>}
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          aria-labelledby="tx-installments-label"
-          onClick={() => onChange(on ? 1 : 2)}
-          className={cn(
-            'relative h-6 w-11 shrink-0 rounded-full transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40',
-            on ? 'bg-primary' : 'bg-muted-foreground/30',
-          )}
-        >
-          <span
-            className={cn(
-              'absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform',
-              on && 'translate-x-5',
-            )}
-          />
-        </button>
-      </div>
-
+    <SwitchRow
+      id="tx-installments-switch"
+      icon={LayersIcon}
+      label={t.editor.installments}
+      hint={on ? undefined : t.editor.installmentsHint}
+      checked={on}
+      onCheckedChange={(next) => onChange(next ? 2 : 1)}
+      className="mt-1"
+    >
       {on && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <div className="flex items-center rounded-lg border bg-card" role="group" aria-label={t.editor.installmentsCount}>
@@ -494,6 +574,6 @@ function InstallmentsField({
           </p>
         </div>
       )}
-    </div>
+    </SwitchRow>
   )
 }

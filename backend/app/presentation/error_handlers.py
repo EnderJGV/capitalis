@@ -34,6 +34,7 @@ STATUS_BY_ERROR: dict[type[exc.DomainError], int] = {
     exc.InvalidInstallments: status.HTTP_422_UNPROCESSABLE_ENTITY,
     exc.InstallmentsOnlyOnCards: status.HTTP_422_UNPROCESSABLE_ENTITY,
     exc.RefundOnlyOnCards: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.ForeignFeeLocked: status.HTTP_409_CONFLICT,
 }
 
 

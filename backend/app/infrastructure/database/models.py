@@ -180,3 +180,7 @@ class TransactionModel(Base):
     category: Mapped[CategoryModel | None] = relationship()
     account: Mapped[AccountModel] = relationship()
     installment_plan: Mapped[InstallmentPlanModel | None] = relationship()
+    # Tarifa internacional enlazada (la fila hija con parent_id = id): se borra con la compra.
+    foreign_fee_charge: Mapped["TransactionModel | None"] = relationship(
+        uselist=False, cascade="all, delete-orphan", passive_deletes=True, lazy="selectin"
+    )

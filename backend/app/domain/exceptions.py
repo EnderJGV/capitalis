@@ -122,5 +122,9 @@ class InstallmentsOnlyOnCards(DomainError):
     message = "Las compras en cuotas solo se registran en tarjetas de crédito"
 
 
+class ForeignFeeLocked(DomainError):
+    message = "Esta tarifa pertenece a una compra en otra moneda: edítala desde la compra"
+
+
 class RefundOnlyOnCards(DomainError):
     message = "Los reembolsos solo se registran en tarjetas de crédito"

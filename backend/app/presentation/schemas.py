@@ -178,6 +178,13 @@ class TransactionIn(BaseModel):
     account_id: int | None = None
     #: Compra en cuotas (solo gastos de tarjeta): `amount` es el total y se reparte en N meses.
     installments: int | None = Field(default=None, ge=1, le=48)
+    #: Ingreso en una tarjeta que devuelve una compra: lleva una categoría de gasto y resta de ella.
+    is_refund: bool = False
+    #: Compra en otra moneda: `amount` ya viene convertido a la moneda de la cuenta.
+    original_amount: Decimal | None = Field(default=None, gt=0, max_digits=14, decimal_places=2)
+    original_currency: Currency | None = None
+    #: % de tarifa internacional (IOF) sobre `amount`; se registra como un gasto aparte enlazado.
+    foreign_fee_percent: Decimal | None = Field(default=None, ge=0, le=100, max_digits=5, decimal_places=2)
 
 
 class InstallmentPlanRef(BaseModel):
@@ -205,6 +212,14 @@ class TransactionOut(BaseModel):
     installment_number: int | None = None
     installment_count: int | None = None
     installment_plan: InstallmentPlanRef | None = None
+    is_refund: bool = False
+    original_amount: Decimal | None = None
+    original_currency: str | None = None
+    exchange_rate: Decimal | None = None
+    #: Si no es None, es la tarifa internacional de esa compra (se edita desde la compra).
+    parent_id: int | None = None
+    #: Monto de la tarifa internacional enlazada a esta compra.
+    foreign_fee: Decimal | None = None
 
 
 class InstallmentProgressOut(BaseModel):

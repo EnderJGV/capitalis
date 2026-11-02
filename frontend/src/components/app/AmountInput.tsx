@@ -53,6 +53,22 @@ export function amountToInput(amount: string): string {
   return amount.replace('.', ',')
 }
 
+/** "5,4812" o "5.4812" → 5.4812 (acepta más de 2 decimales, para tipos de cambio y porcentajes). */
+export function parseRate(raw: string): number | null {
+  const s = raw.replace(/\s/g, '')
+  if (!s) return null
+  const last = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'))
+  const normalized = last === -1 ? s : s.slice(0, last).replace(/[.,]/g, '') + '.' + s.slice(last + 1)
+  const n = Number(normalized)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+/** 5.5 → "5,5" (o "5.5" en inglés), con hasta `digits` decimales y sin ceros sobrantes. */
+export function decimalToInput(n: number, lang: string, digits = 2): string {
+  const fixed = n.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')
+  return lang === 'en' ? fixed : fixed.replace('.', ',')
+}
+
 /** Como parseAmount, pero acepta cero (p. ej., el saldo inicial de una cuenta nueva). */
 export function parseAmountOrZero(raw: string): string | null {
   if (!raw.trim() || /^0+([.,]0*)?$/.test(raw.trim())) return '0.00'

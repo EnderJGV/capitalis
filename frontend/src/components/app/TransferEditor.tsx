@@ -33,7 +33,7 @@ import { cn } from '@/lib/utils'
 import { ratesApi, transfersApi } from '@/services/api'
 import { formatDate, todayISO, useMoney } from '@/utils/format'
 import { AccountPicker } from './AccountPicker'
-import { AmountInput, amountToInput, parseAmount } from './AmountInput'
+import { AmountInput, amountToInput, parseAmount, parseRate } from './AmountInput'
 import { EmptyState } from './EmptyState'
 
 export type TransferEditorResult = 'created' | 'updated' | 'deleted'
@@ -56,16 +56,6 @@ interface Props {
   preset?: TransferPreset
   onDone: (result: TransferEditorResult) => void
   onCreateAccount: () => void
-}
-
-/** "5,4812" o "5.4812" → 5.4812 (acepta más de 2 decimales, para el tipo de cambio). */
-function parseRate(raw: string): number | null {
-  const s = raw.replace(/\s/g, '')
-  if (!s) return null
-  const last = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'))
-  const normalized = last === -1 ? s : s.slice(0, last).replace(/[.,]/g, '') + '.' + s.slice(last + 1)
-  const n = Number(normalized)
-  return Number.isFinite(n) && n > 0 ? n : null
 }
 
 export function TransferEditor({ open, onOpenChange, accounts, initial, preset, onDone, onCreateAccount }: Props) {

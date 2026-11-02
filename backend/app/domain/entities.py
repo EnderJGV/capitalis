@@ -120,6 +120,8 @@ class Transaction:
     parent_id: int | None = None
     #: La compra en cuotas a la que pertenece (solo viene al leer).
     installment_plan: "InstallmentPlan | None" = None
+    #: Monto de la tarifa internacional enlazada a esta compra (solo viene al leer).
+    foreign_fee: Decimal | None = None
 
     def __post_init__(self):
         if self.amount <= 0:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import case, delete, func, literal, or_, select, union_all
+from sqlalchemy import and_, case, delete, func, literal, or_, select, union_all
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
@@ -103,6 +103,7 @@ def _transaction(m: TransactionModel) -> Transaction:
         exchange_rate=m.exchange_rate,
         parent_id=m.parent_id,
         installment_plan=_plan(m.installment_plan) if m.installment_plan else None,
+        foreign_fee=m.foreign_fee_charge.amount if m.foreign_fee_charge else None,
     )
 
 
@@ -336,8 +337,11 @@ class SqlTransactionRepository:
         )
 
     def _owned(self, user_id: int, transaction_id: int) -> TransactionModel | None:
+        # populate_existing: relee también las relaciones (p. ej., la tarifa recién enlazada a la compra).
         return self._s.scalar(
-            self._query().where(TransactionModel.id == transaction_id, TransactionModel.user_id == user_id)
+            self._query()
+            .where(TransactionModel.id == transaction_id, TransactionModel.user_id == user_id)
+            .execution_options(populate_existing=True)
         )
 
     def list(
@@ -368,6 +372,10 @@ class SqlTransactionRepository:
 
     def get_fee(self, transfer_id: int) -> Transaction | None:
         m = self._s.scalar(self._query().where(TransactionModel.transfer_id == transfer_id))
+        return _transaction(m) if m else None
+
+    def get_child(self, parent_id: int) -> Transaction | None:
+        m = self._s.scalar(self._query().where(TransactionModel.parent_id == parent_id))
         return _transaction(m) if m else None
 
     def add(self, transaction: Transaction) -> Transaction:
@@ -524,8 +532,15 @@ class SqlRateRepository:
         self._s.flush()
 
 
-_INCOME = case((TransactionModel.type == "income", TransactionModel.amount), else_=0)
-_EXPENSE = case((TransactionModel.type == "expense", TransactionModel.amount), else_=0)
+# Un reembolso (ingreso con is_refund) no es un ingreso: devuelve parte de un gasto y lo resta.
+_INCOME = case(
+    (and_(TransactionModel.type == "income", TransactionModel.is_refund.is_(False)), TransactionModel.amount), else_=0
+)
+_EXPENSE = case(
+    (TransactionModel.type == "expense", TransactionModel.amount),
+    (TransactionModel.is_refund.is_(True), -TransactionModel.amount),
+    else_=0,
+)
 
 
 class SqlReportRepository:
@@ -547,7 +562,7 @@ class SqlReportRepository:
         return [CurrencyAmount(currency=c, income=i, expense=e) for c, i, e in self._s.execute(q).all()]
 
     def expenses_by_category(self, user_id: int, start: date, end: date) -> list[tuple[str, CategoryTotal]]:
-        total = func.sum(TransactionModel.amount)
+        total = func.sum(_EXPENSE)
         rows = self._s.execute(
             select(
                 AccountModel.currency,
@@ -562,7 +577,7 @@ class SqlReportRepository:
             .outerjoin(CategoryModel, CategoryModel.id == TransactionModel.category_id)
             .where(
                 TransactionModel.user_id == user_id,
-                TransactionModel.type == "expense",
+                or_(TransactionModel.type == "expense", TransactionModel.is_refund.is_(True)),
                 TransactionModel.date >= start,
                 TransactionModel.date <= end,
             )

@@ -57,13 +57,16 @@ def _build(user_id: int, data: TransferData, source: Account, target: Account, t
     )
 
 
-def _fee_category(uow: UnitOfWork, user: User) -> Category:
-    """Categoría "Comisiones bancarias" del usuario (en su idioma); se crea la primera vez."""
-    name, color, icon = FEE_CATEGORY.get(user.language, FEE_CATEGORY["es"])
-    existing = uow.categories.get_by_name(user.id, name, "expense")
+def fee_category(uow: UnitOfWork, user_id: int, language: str) -> Category:
+    """Categoría "Comisiones bancarias" del usuario (en su idioma); se crea la primera vez.
+
+    También reúne las tarifas internacionales de las compras en otra moneda.
+    """
+    name, color, icon = FEE_CATEGORY.get(language, FEE_CATEGORY["es"])
+    existing = uow.categories.get_by_name(user_id, name, "expense")
     if existing:
         return existing
-    return uow.categories.add(Category(id=None, user_id=user.id, name=name, type="expense", color=color, icon=icon))
+    return uow.categories.add(Category(id=None, user_id=user_id, name=name, type="expense", color=color, icon=icon))
 
 
 def _sync_fee(uow: UnitOfWork, user: User, transfer: Transfer, source: Account, target: Account) -> None:
@@ -79,7 +82,7 @@ def _sync_fee(uow: UnitOfWork, user: User, transfer: Transfer, source: Account, 
         current.description = description
         uow.transactions.update(current)
         return
-    category = _fee_category(uow, user)
+    category = fee_category(uow, user.id, user.language)
     uow.transactions.add(
         Transaction(
             id=None,

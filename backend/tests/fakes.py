@@ -35,6 +35,14 @@ class Store:
         return self._ids
 
 
+class FakeUsers:
+    def __init__(self, s: Store):
+        self.s = s
+
+    def get(self, user_id):
+        return self.s.users.get(user_id)
+
+
 class FakeCategories:
     def __init__(self, s: Store):
         self.s = s
@@ -125,10 +133,14 @@ class FakeTransactions:
         t = self.s.transactions.get(transaction_id)
         if not t or t.user_id != user_id:
             return None
-        return replace(t, installment_plan=self.s.plans.get(t.installment_plan_id))
+        child = self.get_child(t.id)
+        return replace(t, installment_plan=self.s.plans.get(t.installment_plan_id), foreign_fee=child.amount if child else None)
 
     def get_fee(self, transfer_id):
         return next((t for t in self.s.transactions.values() if t.transfer_id == transfer_id), None)
+
+    def get_child(self, parent_id):
+        return next((t for t in self.s.transactions.values() if t.parent_id == parent_id), None)
 
     def add(self, transaction):
         created = replace(transaction, id=self.s.next_id())
@@ -141,6 +153,9 @@ class FakeTransactions:
 
     def delete(self, user_id, transaction_id):
         self.s.transactions.pop(transaction_id, None)
+        # La tarifa enlazada se borra con la compra (ON DELETE CASCADE).
+        for t in [t for t in self.s.transactions.values() if t.parent_id == transaction_id]:
+            self.s.transactions.pop(t.id)
 
 
 class FakeInstallmentPlans:
@@ -224,18 +239,27 @@ class FakeReports:
             if t.user_id == user_id and (not start or start <= t.date <= end):
                 yield t, self.s.accounts[t.account_id].currency
 
+    @staticmethod
+    def _split(t):
+        """(ingreso, gasto): un reembolso no es ingreso, resta del gasto."""
+        if t.is_refund:
+            return ZERO, -t.amount
+        return (t.amount, ZERO) if t.type == "income" else (ZERO, t.amount)
+
     def totals(self, user_id, start=None, end=None):
         acc: dict[str, list[Decimal]] = {}
         for t, cur in self._in(user_id, start, end):
             pair = acc.setdefault(cur, [ZERO, ZERO])
-            pair[0 if t.type == "income" else 1] += t.amount
+            income, expense = self._split(t)
+            pair[0] += income
+            pair[1] += expense
         return [CurrencyAmount(c, i, e) for c, (i, e) in acc.items()]
 
     def expenses_by_category(self, user_id, start, end):
         acc: dict[tuple[str, int | None], Decimal] = {}
         for t, cur in self._in(user_id, start, end):
-            if t.type == "expense":
-                acc[(cur, t.category_id)] = acc.get((cur, t.category_id), ZERO) + t.amount
+            if t.type == "expense" or t.is_refund:
+                acc[(cur, t.category_id)] = acc.get((cur, t.category_id), ZERO) + self._split(t)[1]
         result = []
         for (cur, cid), total in acc.items():
             c = self.s.categories.get(cid)
@@ -247,14 +271,13 @@ class FakeReports:
         for t, cur in self._in(user_id, start, end):
             key = t.date.strftime("%Y-%m")
             amounts = result.setdefault(key, [])
-            amounts.append(
-                CurrencyAmount(cur, t.amount if t.type == "income" else ZERO, t.amount if t.type == "expense" else ZERO)
-            )
+            amounts.append(CurrencyAmount(cur, *self._split(t)))
         return result
 
 
 class FakeUnitOfWork:
     def __init__(self, store: Store):
+        self.users = FakeUsers(store)
         self.categories = FakeCategories(store)
         self.accounts = FakeAccounts(store)
         self.transactions = FakeTransactions(store)
