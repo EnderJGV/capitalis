@@ -5,6 +5,7 @@ import { ArrowRightIcon, ChartColumnIcon, HistoryIcon, PlusIcon, ReceiptTextIcon
 import { AccountCard } from '@/components/app/AccountCard'
 import { BalanceHero, BalanceHeroSkeleton } from '@/components/app/BalanceHero'
 import { EmptyState } from '@/components/app/EmptyState'
+import { HorizontalScroller } from '@/components/app/HorizontalScroller'
 import { MonthStrip, MonthStripSkeleton } from '@/components/app/MonthStrip'
 import { MonthSwitcher } from '@/components/app/MonthSwitcher'
 import { PageHeader } from '@/components/app/PageHeader'
@@ -158,8 +159,8 @@ export default function Dashboard() {
             >
               {t.dashboard.yourAccounts}
             </SectionTitle>
-            {/* Fila deslizable de cuentas; termina con "Agregar cuenta". */}
-            <div className="-mx-4 flex snap-x snap-proximity scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 xl:mx-0 xl:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Fila de cuentas: dedo en móvil; arrastre, rueda y flechas en escritorio. Termina con "Agregar cuenta". */}
+            <HorizontalScroller className="-mx-4 snap-x snap-proximity scroll-px-4 gap-3 px-4 py-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 xl:mx-0 xl:px-0">
               {summary.accounts.map((a) => (
                 <AccountCard key={a.id} account={a} mainCurrency={summary.currency} compact className="w-60 shrink-0 snap-start" />
               ))}
@@ -173,7 +174,7 @@ export default function Dashboard() {
                 </span>
                 {t.dashboard.addAccount}
               </button>
-            </div>
+            </HorizontalScroller>
           </section>
         )}
 

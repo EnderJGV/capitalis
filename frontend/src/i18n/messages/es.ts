@@ -4,6 +4,8 @@
  */
 export const es = {
   common: {
+    previous: 'Anterior',
+    next: 'Siguiente',
     save: 'Guardar',
     saving: 'Guardando…',
     cancel: 'Cancelar',

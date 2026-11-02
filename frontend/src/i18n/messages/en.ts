@@ -2,6 +2,8 @@ import type { Messages } from './es'
 
 export const en: Messages = {
   common: {
+    previous: 'Previous',
+    next: 'Next',
     save: 'Save',
     saving: 'Saving…',
     cancel: 'Cancel',
