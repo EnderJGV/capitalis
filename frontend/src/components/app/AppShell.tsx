@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   ArrowLeftRightIcon,
+  CreditCardIcon,
   LayoutDashboardIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
@@ -308,11 +309,12 @@ function BottomNavLink({ item }: { item: NavItem }) {
 /** Botón "+" de la barra inferior: elegir entre movimiento, transferencia o cuenta nueva. */
 function QuickAddMenu() {
   const { t } = useI18n()
-  const { openNew, openTransfer, openAccount } = useTransactionEditor()
+  const { openNew, openTransfer, openAccount, openCard } = useTransactionEditor()
   const options = [
     { icon: TYPE_ICON.expense, label: t.quick.movement, hint: t.quick.movementHint, onSelect: openNew },
     { icon: ArrowLeftRightIcon, label: t.quick.transfer, hint: t.quick.transferHint, onSelect: () => openTransfer() },
     { icon: WalletIcon, label: t.quick.account, hint: t.quick.accountHint, onSelect: () => openAccount() },
+    { icon: CreditCardIcon, label: t.quick.card, hint: t.quick.cardHint, onSelect: () => openCard() },
   ]
   return (
     <DropdownMenu>

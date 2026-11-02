@@ -2,13 +2,16 @@ import type {
   Account,
   AccountInput,
   AuthResponse,
+  CardInput,
   CatalogCountry,
   CatalogInstitution,
   InstitutionKind,
   Category,
   CategoryInput,
+  CreditCard,
   Currency,
   Rate,
+  Statement,
   Summary,
   Transaction,
   TransactionFilters,
@@ -55,6 +58,17 @@ export const accountsApi = {
   create: (data: AccountInput) => http<Account>('/accounts', { method: 'POST', body: data }),
   update: (id: number, data: AccountInput) => http<Account>(`/accounts/${id}`, { method: 'PUT', body: data }),
   remove: (id: number) => http<void>(`/accounts/${id}`, { method: 'DELETE' }),
+}
+
+export const cardsApi = {
+  list: (includeArchived = false) =>
+    http<CreditCard[]>('/cards', { query: { include_archived: includeArchived ? 'true' : undefined } }),
+  get: (id: number) => http<CreditCard>(`/cards/${id}`),
+  /** Todas las facturas, de la más vieja a la más nueva (la abierta siempre aparece). */
+  statements: (id: number) => http<Statement[]>(`/cards/${id}/statements`),
+  create: (data: CardInput) => http<CreditCard>('/cards', { method: 'POST', body: data }),
+  update: (id: number, data: CardInput) => http<CreditCard>(`/cards/${id}`, { method: 'PUT', body: data }),
+  remove: (id: number) => http<void>(`/cards/${id}`, { method: 'DELETE' }),
 }
 
 export const transfersApi = {

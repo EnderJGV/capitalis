@@ -79,7 +79,7 @@ export function InstitutionLogo({ institution, info, name, size = 'md', classNam
 }
 
 /** Color estable para instituciones sin color de marca (siempre el mismo para el mismo nombre). */
-function hashColor(text: string): string {
+export function hashColor(text: string): string {
   let h = 0
   for (const ch of text) h = (h * 31 + ch.charCodeAt(0)) % 360
   return `hsl(${h} 45% 38%)`

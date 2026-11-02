@@ -58,7 +58,7 @@ interface Props {
 }
 
 /** Institución elegida: del catálogo, "cash" (efectivo) o ninguna (otra institución con nombre libre). */
-interface Choice {
+export interface InstitutionChoice {
   institution: string | null
   /** Datos para mostrarla; no existen para "otra institución" ni "efectivo". */
   info?: { name: string; kind?: InstitutionKind; domain: string | null; color: string | null; country?: string }
@@ -79,7 +79,7 @@ export function AccountEditor({ open, onOpenChange, initial, onDone }: Props) {
 }
 
 function EditorBody({ initial, onDone, onCancel }: { initial?: Account; onDone: Props['onDone']; onCancel: () => void }) {
-  const [choice, setChoice] = useState<Choice | null>(
+  const [choice, setChoice] = useState<InstitutionChoice | null>(
     initial ? { institution: initial.institution, info: initial.institution_info ?? undefined } : null,
   )
   if (!choice) return <InstitutionStep onPick={setChoice} />
@@ -107,7 +107,16 @@ function useDebounced<T>(value: T, ms: number): T {
   return debounced
 }
 
-function InstitutionStep({ onPick }: { onPick: (choice: Choice) => void }) {
+interface InstitutionStepProps {
+  onPick: (choice: InstitutionChoice) => void
+  /** Ofrecer "Efectivo" (no tiene sentido para una tarjeta). */
+  allowCash?: boolean
+  title?: string
+  description?: string
+}
+
+/** Paso "elegir institución" del catálogo mundial; también lo usa el editor de tarjetas. */
+export function InstitutionStep({ onPick, allowCash = true, title, description }: InstitutionStepProps) {
   const { t, locale } = useI18n()
   const { user } = useAuth()
   const countries = useCatalogCountries()
@@ -171,8 +180,8 @@ function InstitutionStep({ onPick }: { onPick: (choice: Choice) => void }) {
   return (
     <>
       <SheetHeader className="border-b px-5 py-4">
-        <SheetTitle>{t.accountEditor.pickTitle}</SheetTitle>
-        <SheetDescription>{t.accountEditor.pickDescription}</SheetDescription>
+        <SheetTitle>{title ?? t.accountEditor.pickTitle}</SheetTitle>
+        <SheetDescription>{description ?? t.accountEditor.pickDescription}</SheetDescription>
       </SheetHeader>
 
       {/* Filtros: la búsqueda ocupa todo el ancho; país y tipo debajo, lado a lado */}
@@ -204,10 +213,12 @@ function InstitutionStep({ onPick }: { onPick: (choice: Choice) => void }) {
         {/* Opciones especiales siempre a mano */}
         {!q && (
           <div className="mb-4 grid grid-cols-2 gap-2">
-            <SpecialOption onClick={() => onPick({ institution: CASH_ID })}>
-              <InstitutionLogo institution={CASH_ID} name={t.accountEditor.cash} size="sm" />
-              {t.accountEditor.cash}
-            </SpecialOption>
+            {allowCash && (
+              <SpecialOption onClick={() => onPick({ institution: CASH_ID })}>
+                <InstitutionLogo institution={CASH_ID} name={t.accountEditor.cash} size="sm" />
+                {t.accountEditor.cash}
+              </SpecialOption>
+            )}
             <SpecialOption onClick={() => onPick({ institution: null })}>
               <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
                 <LandmarkIcon className="size-4" />
@@ -295,7 +306,7 @@ function SpecialOption({ onClick, children }: { onClick: () => void; children: R
 
 interface DetailsProps {
   initial?: Account
-  choice: Choice
+  choice: InstitutionChoice
   onChangeInstitution?: () => void
   onDone: Props['onDone']
   onCancel: () => void

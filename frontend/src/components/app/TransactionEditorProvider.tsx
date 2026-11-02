@@ -4,17 +4,21 @@ import type { Account, Transaction, Transfer } from '@/domain/types'
 import { getMessages } from '@/i18n/runtime'
 import { accountsApi, transfersApi } from '@/services/api'
 import { AccountEditor } from './AccountEditor'
+import { CardEditor } from './CardEditor'
 import { TransactionEditor } from './TransactionEditor'
-import { TransferEditor } from './TransferEditor'
+import { TransferEditor, type TransferPreset } from './TransferEditor'
 
 interface QuickActionsValue {
   /** Cuentas del usuario (incluidas las archivadas); null mientras cargan. */
   accounts: Account[] | null
   openNew: () => void
   openEdit: (tx: Transaction) => void
-  openTransfer: (options?: { fromAccountId?: number }) => void
+  /** Transferencia nueva, opcionalmente ya completada (p. ej., el pago de una factura). */
+  openTransfer: (preset?: TransferPreset) => void
   openEditTransfer: (transfer: Transfer) => void
+  /** Editor de cuenta; si la cuenta es una tarjeta, abre el de tarjeta. */
   openAccount: (account?: Account) => void
+  openCard: (card?: Account) => void
   /** Cambia cada vez que se guarda o elimina algo; las páginas lo usan para recargar. */
   revision: number
 }
@@ -23,8 +27,9 @@ const QuickActionsContext = createContext<QuickActionsValue | null>(null)
 
 type Panel =
   | { kind: 'transaction'; initial?: Transaction }
-  | { kind: 'transfer'; initial?: Transfer; fromAccountId?: number }
+  | { kind: 'transfer'; initial?: Transfer; preset?: TransferPreset }
   | { kind: 'account'; initial?: Account }
+  | { kind: 'card'; initial?: Account }
   | null
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -47,12 +52,13 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
 
   const openNew = useCallback(() => setPanel({ kind: 'transaction' }), [])
   const openEdit = useCallback((tx: Transaction) => setPanel({ kind: 'transaction', initial: tx }), [])
-  const openTransfer = useCallback(
-    (options?: { fromAccountId?: number }) => setPanel({ kind: 'transfer', fromAccountId: options?.fromAccountId }),
+  const openTransfer = useCallback((preset?: TransferPreset) => setPanel({ kind: 'transfer', preset }), [])
+  const openEditTransfer = useCallback((transfer: Transfer) => setPanel({ kind: 'transfer', initial: transfer }), [])
+  const openAccount = useCallback(
+    (account?: Account) => setPanel({ kind: account?.kind === 'credit_card' ? 'card' : 'account', initial: account }),
     [],
   )
-  const openEditTransfer = useCallback((transfer: Transfer) => setPanel({ kind: 'transfer', initial: transfer }), [])
-  const openAccount = useCallback((account?: Account) => setPanel({ kind: 'account', initial: account }), [])
+  const openCard = useCallback((card?: Account) => setPanel({ kind: 'card', initial: card }), [])
 
   // Atajos: N, movimiento nuevo; T, transferencia nueva.
   useEffect(() => {
@@ -84,8 +90,8 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
   const close = (open: boolean) => !open && setPanel(null)
 
   const value = useMemo(
-    () => ({ accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, revision }),
-    [accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, revision],
+    () => ({ accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, revision }),
+    [accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, revision],
   )
 
   return (
@@ -105,7 +111,7 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
         onOpenChange={close}
         accounts={accounts ?? []}
         initial={panel?.kind === 'transfer' ? panel.initial : undefined}
-        defaultFromId={panel?.kind === 'transfer' ? panel.fromAccountId : undefined}
+        preset={panel?.kind === 'transfer' ? panel.preset : undefined}
         onDone={(result) => done(getMessages().transfer[result])}
         onCreateAccount={() => openAccount()}
       />
@@ -114,6 +120,13 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
         onOpenChange={close}
         initial={panel?.kind === 'account' ? panel.initial : undefined}
         onDone={(result) => done(getMessages().accounts[result])}
+      />
+      <CardEditor
+        open={panel?.kind === 'card'}
+        onOpenChange={close}
+        initial={panel?.kind === 'card' ? panel.initial : undefined}
+        accounts={accounts ?? []}
+        onDone={(result) => done(getMessages().cards[result])}
       />
     </QuickActionsContext.Provider>
   )

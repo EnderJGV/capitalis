@@ -38,13 +38,22 @@ import { EmptyState } from './EmptyState'
 
 export type TransferEditorResult = 'created' | 'updated' | 'deleted'
 
+/** Datos para abrir una transferencia nueva ya completada (p. ej., "Pagar factura"). */
+export interface TransferPreset {
+  fromAccountId?: number
+  toAccountId?: number
+  /** Monto que debe llegar al destino ("123.45"); si las monedas difieren, el que sale se calcula con la cotización. */
+  amount?: string
+  description?: string
+}
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   accounts: Account[]
   initial?: Transfer
-  /** Cuenta de origen preseleccionada (p. ej., "Transferir desde aquí"). */
-  defaultFromId?: number | null
+  /** Transferencia nueva ya completada (cuenta de origen, destino, monto…). */
+  preset?: TransferPreset
   onDone: (result: TransferEditorResult) => void
   onCreateAccount: () => void
 }
@@ -59,7 +68,7 @@ function parseRate(raw: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
-export function TransferEditor({ open, onOpenChange, accounts, initial, defaultFromId, onDone, onCreateAccount }: Props) {
+export function TransferEditor({ open, onOpenChange, accounts, initial, preset, onDone, onCreateAccount }: Props) {
   const { t } = useI18n()
   const isDesktop = useMediaQuery('(min-width: 640px)')
   const usable = accounts.filter((a) => !a.archived)
@@ -89,10 +98,10 @@ export function TransferEditor({ open, onOpenChange, accounts, initial, defaultF
             />
           ) : (
             <TransferForm
-              key={initial?.id ?? `new-${defaultFromId ?? ''}`}
+              key={initial?.id ?? `new-${preset?.fromAccountId ?? ''}-${preset?.toAccountId ?? ''}`}
               accounts={accounts}
               initial={initial}
-              defaultFromId={defaultFromId}
+              preset={preset}
               onDone={onDone}
               onCancel={() => onOpenChange(false)}
             />
@@ -105,12 +114,12 @@ export function TransferEditor({ open, onOpenChange, accounts, initial, defaultF
 interface FormProps {
   accounts: Account[]
   initial?: Transfer
-  defaultFromId?: number | null
+  preset?: TransferPreset
   onDone: Props['onDone']
   onCancel: () => void
 }
 
-function TransferForm({ accounts, initial, defaultFromId, onDone, onCancel }: FormProps) {
+function TransferForm({ accounts, initial, preset, onDone, onCancel }: FormProps) {
   const { t, lang } = useI18n()
   const money = useMoney()
   const toInput = (n: number, digits = 2) => {
@@ -119,17 +128,28 @@ function TransferForm({ accounts, initial, defaultFromId, onDone, onCancel }: Fo
   }
 
   const usable = accounts.filter((a) => !a.archived)
-  const [fromId, setFromId] = useState<number | null>(initial?.from_account_id ?? defaultFromId ?? usable[0]?.id ?? null)
+  const defaultFromId = preset?.fromAccountId ?? usable.find((a) => a.id !== preset?.toAccountId)?.id ?? null
+  const [fromId, setFromId] = useState<number | null>(initial?.from_account_id ?? defaultFromId)
   const [toId, setToId] = useState<number | null>(
-    initial?.to_account_id ?? usable.find((a) => a.id !== (defaultFromId ?? usable[0]?.id))?.id ?? null,
+    initial?.to_account_id ?? preset?.toAccountId ?? usable.find((a) => a.id !== defaultFromId)?.id ?? null,
   )
-  const [amount, setAmount] = useState(initial ? amountToInput(initial.amount) : '')
-  const [received, setReceived] = useState(initial ? amountToInput(initial.received_amount) : '')
+  // El monto del preset es el que debe llegar: si las monedas son iguales, también es el que sale.
+  const presetCross = (() => {
+    const f = accounts.find((a) => a.id === fromId)
+    const tAcc = accounts.find((a) => a.id === toId)
+    return !!f && !!tAcc && f.currency !== tAcc.currency
+  })()
+  const [amount, setAmount] = useState(
+    initial ? amountToInput(initial.amount) : preset?.amount && !presetCross ? amountToInput(preset.amount) : '',
+  )
+  const [received, setReceived] = useState(
+    initial ? amountToInput(initial.received_amount) : preset?.amount && presetCross ? amountToInput(preset.amount) : '',
+  )
   const [rate, setRate] = useState(initial ? toInput(Number(initial.rate), 6) : '')
   const [feeOn, setFeeOn] = useState(Number(initial?.fee ?? 0) > 0)
   const [fee, setFee] = useState(initial && Number(initial.fee) > 0 ? amountToInput(initial.fee) : '')
   const [date, setDate] = useState(initial?.date ?? todayISO())
-  const [description, setDescription] = useState(initial?.description ?? '')
+  const [description, setDescription] = useState(initial?.description ?? preset?.description ?? '')
   const [suggestion, setSuggestion] = useState<Rate | 'loading' | 'unavailable' | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -162,7 +182,13 @@ function TransferForm({ accounts, initial, defaultFromId, onDone, onCancel }: Fo
         setRate((current) => {
           if (current) return current
           const next = toInput(Number(r.rate), 6)
-          recompute(amount, next)
+          const wanted = parseAmount(received)
+          if (!parseAmount(amount) && wanted) {
+            // Se sabe cuánto debe llegar (p. ej., el total de la factura): se calcula cuánto sale.
+            setAmount(toInput(Number(wanted) / Number(r.rate)))
+          } else {
+            recompute(amount, next)
+          }
           return next
         })
       })

@@ -55,8 +55,35 @@ export interface Category {
 
 export type CategoryInput = Omit<Category, 'id'>
 
+/** Tipos que se eligen al crear una cuenta. Las tarjetas ('credit_card') se crean aparte, con su configuración. */
 export const ACCOUNT_KINDS = ['checking', 'savings', 'digital', 'cash', 'investment'] as const
-export type AccountKind = (typeof ACCOUNT_KINDS)[number]
+export type AccountKind = (typeof ACCOUNT_KINDS)[number] | 'credit_card'
+
+export const CARD_NETWORKS = [
+  'visa',
+  'mastercard',
+  'amex',
+  'elo',
+  'hipercard',
+  'diners',
+  'discover',
+  'jcb',
+  'unionpay',
+  'cabal',
+  'other',
+] as const
+export type CardNetwork = (typeof CARD_NETWORKS)[number]
+
+/** Configuración de una tarjeta de crédito. Nunca incluye el número completo ni el código de seguridad. */
+export interface CardConfig {
+  network: CardNetwork
+  last4: string | null
+  credit_limit: string
+  closing_day: number
+  due_day: number
+  /** Cuenta desde la que se paga la factura por defecto. */
+  payment_account_id: number | null
+}
 
 /** Datos mínimos de una cuenta que acompañan a un movimiento o transferencia. */
 export interface AccountRef {
@@ -67,6 +94,8 @@ export interface AccountRef {
   /** Id de la institución en el catálogo, "cash" (efectivo) o null. */
   institution: string | null
   institution_info: InstitutionInfo | null
+  /** Solo en las tarjetas de crédito. */
+  card: CardConfig | null
 }
 
 export interface Account extends AccountRef {
@@ -83,6 +112,48 @@ export interface AccountInput {
   kind: AccountKind
   institution: string | null
   initial_balance: string
+  archived: boolean
+}
+
+export type StatementStatus = 'future' | 'open' | 'closed' | 'partial' | 'overdue' | 'paid' | 'credit'
+
+/** Factura de una tarjeta: los movimientos de start_date a closing_date (inclusive). */
+export interface Statement {
+  /** Mes del cierre (YYYY-MM): identifica la factura. */
+  month: string
+  start_date: string
+  closing_date: string
+  due_date: string
+  charges: string
+  credits: string
+  total: string
+  paid: string
+  pending: string
+  status: StatementStatus
+}
+
+/** Tarjeta con su deuda, límite disponible y las facturas que importan hoy. */
+export interface CreditCard extends Account {
+  card: CardConfig
+  debt: string
+  /** Límite − deuda; negativo si se pasó del límite. */
+  available: string
+  credit_balance: string
+  current_statement: Statement
+  /** Factura cerrada más vieja con saldo pendiente, si hay. */
+  next_due: Statement | null
+}
+
+export interface CardInput {
+  name: string
+  currency: Currency
+  institution: string | null
+  network: CardNetwork
+  last4: string | null
+  credit_limit: string
+  closing_day: number
+  due_day: number
+  payment_account_id: number | null
   archived: boolean
 }
 
@@ -180,4 +251,6 @@ export interface Summary {
   /** Monedas sin cotización: sus montos quedan fuera de los totales. */
   missing_currencies: string[]
   accounts: Account[]
+  /** Tarjetas activas, para los avisos de vencimiento. */
+  cards: CreditCard[]
 }

@@ -24,14 +24,24 @@ import { useCountUp } from '@/hooks/use-count-up'
 import { useI18n } from '@/i18n/I18nProvider'
 import { accountsApi, transactionsApi, transfersApi } from '@/services/api'
 import { useMoney } from '@/utils/format'
+import CardDetail from './CardDetail'
 
 const LAST_ACCOUNT_KEY = 'capitalis-last-account'
 
+/** /cuentas/:id muestra una cuenta o, si es una tarjeta de crédito, su detalle con las facturas. */
 export default function AccountDetail() {
-  const { t } = useI18n()
-  const money = useMoney()
   const { id } = useParams()
   const accountId = Number(id)
+  const { accounts } = useQuickActions()
+  if (!accounts) return <Skeleton className="mt-11 h-44 w-full rounded-xl" />
+  const known = accounts.find((a) => a.id === accountId)
+  if (known?.kind === 'credit_card') return <CardDetail key={accountId} cardId={accountId} />
+  return <BankAccountDetail key={accountId} accountId={accountId} />
+}
+
+function BankAccountDetail({ accountId }: { accountId: number }) {
+  const { t } = useI18n()
+  const money = useMoney()
   const { openNew, openEdit, openTransfer, openEditTransfer, openAccount, revision } = useQuickActions()
   const [account, setAccount] = useState<Account | null>(null)
   const [items, setItems] = useState<{ txs: Transaction[]; transfers: Transfer[] } | null>(null)

@@ -18,11 +18,13 @@ interface Props {
   exclude?: number | null
   /** Título del panel en móvil. */
   title?: string
+  /** Texto cuando todavía no hay cuenta elegida. */
+  placeholder?: string
   className?: string
 }
 
 /** Selector de cuenta con logo, nombre y saldo: lista bajo el campo en escritorio, panel inferior en móvil. */
-export function AccountPicker({ id, accounts, value, onChange, exclude, title, className }: Props) {
+export function AccountPicker({ id, accounts, value, onChange, exclude, title, placeholder, className }: Props) {
   const { t } = useI18n()
   const money = useMoney()
   const isDesktop = useMediaQuery('(min-width: 768px)')
@@ -58,7 +60,7 @@ export function AccountPicker({ id, accounts, value, onChange, exclude, title, c
           </span>
         </>
       ) : (
-        <span className="flex-1 px-1 type-meta text-muted-foreground">{t.transfer.chooseAccount}</span>
+        <span className="flex-1 px-1 type-meta text-muted-foreground">{placeholder ?? t.transfer.chooseAccount}</span>
       )}
       <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
     </button>
