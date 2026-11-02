@@ -18,6 +18,9 @@ def _valid_currency(code: str) -> str:
 Currency = Annotated[str, Field(min_length=3, max_length=3), AfterValidator(_valid_currency)]
 # Las tarjetas ("credit_card") se crean y editan en /cards, con su configuración.
 AccountKind = Literal["checking", "savings", "digital", "cash", "investment"]
+CardNetwork = Literal[
+    "visa", "mastercard", "amex", "elo", "hipercard", "diners", "discover", "jcb", "unionpay", "cabal", "other"
+]
 
 
 Language = Literal["es", "pt", "en"]
@@ -84,6 +87,18 @@ class InstitutionInfo(BaseModel):
     color: str | None = None
 
 
+class CardConfigOut(BaseModel):
+    """Configuración de una tarjeta de crédito (nunca incluye el número completo)."""
+
+    model_config = ConfigDict(from_attributes=True)
+    network: str
+    last4: str | None
+    credit_limit: Decimal
+    closing_day: int
+    due_day: int
+    payment_account_id: int | None
+
+
 class AccountRef(BaseModel):
     """Datos mínimos de una cuenta para mostrarla junto a un movimiento o transferencia."""
 
@@ -93,6 +108,8 @@ class AccountRef(BaseModel):
     currency: str
     kind: str
     institution: str | None
+    #: Solo en las tarjetas de crédito.
+    card: CardConfigOut | None = None
 
     @computed_field
     @property
@@ -112,6 +129,44 @@ class AccountOut(AccountRef):
     balance: Decimal
     #: Saldo en la moneda principal del usuario (None si no hay cotización).
     converted_balance: Decimal | None = None
+
+
+class CardIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    currency: Currency
+    institution: str | None = Field(default=None, max_length=40)
+    network: CardNetwork = "other"
+    #: Solo los últimos 4 dígitos, opcionales, para reconocer la tarjeta. El dominio valida el formato.
+    last4: str | None = Field(default=None, max_length=4)
+    credit_limit: Decimal = Field(default=Decimal("0"), max_digits=14, decimal_places=2)
+    closing_day: int
+    due_day: int
+    payment_account_id: int | None = None
+    archived: bool = False
+
+
+class StatementOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    #: Mes del cierre ("YYYY-MM"): identifica la factura.
+    month: str
+    start_date: date
+    closing_date: date
+    due_date: date
+    charges: Decimal
+    credits: Decimal
+    total: Decimal
+    paid: Decimal
+    pending: Decimal
+    status: str
+
+
+class CardOut(AccountOut):
+    card: CardConfigOut
+    debt: Decimal
+    available: Decimal
+    credit_balance: Decimal
+    current_statement: StatementOut
+    next_due: StatementOut | None = None
 
 
 class TransactionIn(BaseModel):
@@ -199,3 +254,4 @@ class SummaryOut(BaseModel):
     approximate: bool
     missing_currencies: list[str]
     accounts: list[AccountOut]
+    cards: list[CardOut] = []

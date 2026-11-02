@@ -26,6 +26,14 @@ STATUS_BY_ERROR: dict[type[exc.DomainError], int] = {
     exc.InvalidFee: status.HTTP_422_UNPROCESSABLE_ENTITY,
     exc.RateUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     exc.UnknownInstitution: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.CardNotFound: status.HTTP_404_NOT_FOUND,
+    exc.InvalidCardDays: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.InvalidLast4: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.InvalidCreditLimit: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.PaymentAccountIsCard: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.InvalidInstallments: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.InstallmentsOnlyOnCards: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.RefundOnlyOnCards: status.HTTP_422_UNPROCESSABLE_ENTITY,
 }
 
 

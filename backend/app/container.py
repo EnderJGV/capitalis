@@ -2,6 +2,14 @@
 
 from .application.accounts import CreateAccount, DeleteAccount, GetAccount, ListAccounts, UpdateAccount
 from .application.auth import AuthenticateUser, LoginUser, RegisterUser, UpdateProfile
+from .application.cards import (
+    CreateCreditCard,
+    DeleteCreditCard,
+    GetCreditCard,
+    GetStatements,
+    ListCreditCards,
+    UpdateCreditCard,
+)
 from .application.categories import CreateCategory, DeleteCategory, ListCategories, UpdateCategory
 from .application.dashboard import GetSummary
 from .application.rates import CurrencyConverter, GetRate
@@ -38,6 +46,13 @@ class Container:
         self.create_account = CreateAccount(uow_factory)
         self.update_account = UpdateAccount(uow_factory)
         self.delete_account = DeleteAccount(uow_factory)
+
+        self.list_cards = ListCreditCards(uow_factory)
+        self.get_card = GetCreditCard(uow_factory)
+        self.get_statements = GetStatements(uow_factory)
+        self.create_card = CreateCreditCard(uow_factory)
+        self.update_card = UpdateCreditCard(uow_factory)
+        self.delete_card = DeleteCreditCard(uow_factory)
 
         self.list_transfers = ListTransfers(uow_factory)
         self.create_transfer = CreateTransfer(uow_factory)

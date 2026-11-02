@@ -92,12 +92,24 @@ class FakeAccounts:
         )
 
 
+def _in_range(day, start, end):
+    return not (start and end) or start <= day <= end
+
+
 class FakeTransactions:
     def __init__(self, s: Store):
         self.s = s
 
-    def list(self, user_id, **_):
-        return [t for t in self.s.transactions.values() if t.user_id == user_id]
+    def list(self, user_id, *, start=None, end=None, type=None, category_id=None, account_id=None):
+        return [
+            t
+            for t in self.s.transactions.values()
+            if t.user_id == user_id
+            and _in_range(t.date, start, end)
+            and (not type or t.type == type)
+            and (not category_id or t.category_id == category_id)
+            and (not account_id or t.account_id == account_id)
+        ]
 
     def get(self, user_id, transaction_id):
         t = self.s.transactions.get(transaction_id)
@@ -123,8 +135,14 @@ class FakeTransfers:
     def __init__(self, s: Store):
         self.s = s
 
-    def list(self, user_id, **_):
-        return [t for t in self.s.transfers.values() if t.user_id == user_id]
+    def list(self, user_id, *, start=None, end=None, account_id=None):
+        return [
+            t
+            for t in self.s.transfers.values()
+            if t.user_id == user_id
+            and _in_range(t.date, start, end)
+            and (not account_id or account_id in (t.from_account_id, t.to_account_id))
+        ]
 
     def get(self, user_id, transfer_id):
         t = self.s.transfers.get(transfer_id)

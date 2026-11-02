@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from ..domain.entities import AccountBalance, CategoryTotal, CurrencyAmount, MonthTotal, Summary, User
 from ..domain.periods import current_month, month_range, shift_month
+from .cards import card_overview
 from .ports import UnitOfWorkFactory
 from .rates import CurrencyConverter
 
@@ -58,6 +59,7 @@ class GetSummary:
             by_category = uow.reports.expenses_by_category(user.id, start, end)
             monthly = uow.reports.monthly_totals(user.id, date(first_year, first_month, 1), end)
             accounts = uow.accounts.list(user.id, include_archived=True)
+            cards = [card_overview(uow, user.id, a, today) for a in accounts if a.is_card and not a.archived]
 
         t = _Totals(self._converter, user.currency)
         income, expense = t.sum(totals, min(end, today))
@@ -107,4 +109,5 @@ class GetSummary:
             approximate=t.approximate,
             missing_currencies=sorted(t.missing),
             accounts=balances,
+            cards=cards,
         )

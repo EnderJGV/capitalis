@@ -6,7 +6,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from .infrastructure.config import settings
 from .infrastructure.database.session import create_tables
 from .presentation.error_handlers import register_error_handlers
-from .presentation.routers import accounts, auth, catalog, categories, dashboard, rates, transactions, transfers
+from .presentation.routers import (
+    accounts,
+    auth,
+    cards,
+    catalog,
+    categories,
+    dashboard,
+    rates,
+    transactions,
+    transfers,
+)
 
 
 @asynccontextmanager
@@ -29,6 +39,7 @@ for router in (
     auth.router,
     categories.router,
     accounts.router,
+    cards.router,
     catalog.router,
     transactions.router,
     transfers.router,

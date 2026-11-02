@@ -198,6 +198,23 @@ class AccountBalance:
 
 
 @dataclass(frozen=True)
+class CardOverview:
+    """Una tarjeta con su deuda, su límite disponible y las facturas que importan hoy."""
+
+    account: Account
+    #: Lo que se debe, incluidas las cuotas futuras (que ya comprometen el límite).
+    debt: Decimal
+    #: Límite − deuda; negativo si se pasó del límite.
+    available: Decimal
+    #: Saldo a favor (pagó de más o recibió reembolsos mayores que la deuda).
+    credit_balance: Decimal
+    #: Factura abierta (la del ciclo de hoy).
+    current: Statement
+    #: Factura cerrada más vieja con saldo pendiente (vencida o por vencer), si hay.
+    next_due: Statement | None
+
+
+@dataclass(frozen=True)
 class Summary:
     """Totales del mes en la moneda principal del usuario (`currency`)."""
 
@@ -214,6 +231,8 @@ class Summary:
     #: Monedas sin cotización disponible: sus montos quedan fuera de los totales.
     missing_currencies: list[str] = field(default_factory=list)
     accounts: list[AccountBalance] = field(default_factory=list)
+    #: Tarjetas activas con su factura abierta y la próxima a vencer (para los avisos de vencimiento).
+    cards: list["CardOverview"] = field(default_factory=list)
 
 
 @dataclass

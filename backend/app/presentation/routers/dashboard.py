@@ -5,6 +5,7 @@ from ...domain.entities import User
 from ..dependencies import get_container, get_current_user
 from ..schemas import SummaryOut
 from .accounts import account_out
+from .cards import card_out
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -24,4 +25,5 @@ def summary(month: str | None = None, user: User = Depends(get_current_user), c:
         approximate=s.approximate,
         missing_currencies=s.missing_currencies,
         accounts=[account_out(a) for a in s.accounts],
+        cards=[card_out(card) for card in s.cards],
     )

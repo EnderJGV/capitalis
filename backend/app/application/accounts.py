@@ -84,9 +84,10 @@ class UpdateAccount:
                     current,
                     name=data.name.strip(),
                     currency=data.currency,
-                    kind=data.kind,
+                    # Una tarjeta sigue siendo tarjeta (su configuración se edita en /cards).
+                    kind=current.kind if current.is_card else data.kind,
                     institution=data.institution,
-                    initial_balance=data.initial_balance,
+                    initial_balance=current.initial_balance if current.is_card else data.initial_balance,
                     archived=data.archived,
                 )
             )
