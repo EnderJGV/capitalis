@@ -1,0 +1,606 @@
+[
+ {
+  "code": "AED",
+  "convertible": true
+ },
+ {
+  "code": "AFN",
+  "convertible": true
+ },
+ {
+  "code": "ALL",
+  "convertible": true
+ },
+ {
+  "code": "AMD",
+  "convertible": true
+ },
+ {
+  "code": "ANG",
+  "convertible": true
+ },
+ {
+  "code": "AOA",
+  "convertible": true
+ },
+ {
+  "code": "ARS",
+  "convertible": true
+ },
+ {
+  "code": "AUD",
+  "convertible": true
+ },
+ {
+  "code": "AWG",
+  "convertible": true
+ },
+ {
+  "code": "AZN",
+  "convertible": true
+ },
+ {
+  "code": "BAM",
+  "convertible": true
+ },
+ {
+  "code": "BBD",
+  "convertible": true
+ },
+ {
+  "code": "BDT",
+  "convertible": true
+ },
+ {
+  "code": "BHD",
+  "convertible": true
+ },
+ {
+  "code": "BIF",
+  "convertible": true
+ },
+ {
+  "code": "BMD",
+  "convertible": true
+ },
+ {
+  "code": "BND",
+  "convertible": true
+ },
+ {
+  "code": "BOB",
+  "convertible": true
+ },
+ {
+  "code": "BRL",
+  "convertible": true
+ },
+ {
+  "code": "BSD",
+  "convertible": true
+ },
+ {
+  "code": "BTN",
+  "convertible": true
+ },
+ {
+  "code": "BWP",
+  "convertible": true
+ },
+ {
+  "code": "BYN",
+  "convertible": true
+ },
+ {
+  "code": "BZD",
+  "convertible": true
+ },
+ {
+  "code": "CAD",
+  "convertible": true
+ },
+ {
+  "code": "CDF",
+  "convertible": true
+ },
+ {
+  "code": "CHF",
+  "convertible": true
+ },
+ {
+  "code": "CLP",
+  "convertible": true
+ },
+ {
+  "code": "CNY",
+  "convertible": true
+ },
+ {
+  "code": "COP",
+  "convertible": true
+ },
+ {
+  "code": "CRC",
+  "convertible": true
+ },
+ {
+  "code": "CUP",
+  "convertible": true
+ },
+ {
+  "code": "CVE",
+  "convertible": true
+ },
+ {
+  "code": "CZK",
+  "convertible": true
+ },
+ {
+  "code": "DJF",
+  "convertible": true
+ },
+ {
+  "code": "DKK",
+  "convertible": true
+ },
+ {
+  "code": "DOP",
+  "convertible": true
+ },
+ {
+  "code": "DZD",
+  "convertible": true
+ },
+ {
+  "code": "EGP",
+  "convertible": true
+ },
+ {
+  "code": "ERN",
+  "convertible": true
+ },
+ {
+  "code": "ETB",
+  "convertible": true
+ },
+ {
+  "code": "EUR",
+  "convertible": true
+ },
+ {
+  "code": "FJD",
+  "convertible": true
+ },
+ {
+  "code": "FKP",
+  "convertible": true
+ },
+ {
+  "code": "GBP",
+  "convertible": true
+ },
+ {
+  "code": "GEL",
+  "convertible": true
+ },
+ {
+  "code": "GHS",
+  "convertible": true
+ },
+ {
+  "code": "GIP",
+  "convertible": true
+ },
+ {
+  "code": "GMD",
+  "convertible": true
+ },
+ {
+  "code": "GNF",
+  "convertible": true
+ },
+ {
+  "code": "GTQ",
+  "convertible": true
+ },
+ {
+  "code": "GYD",
+  "convertible": true
+ },
+ {
+  "code": "HKD",
+  "convertible": true
+ },
+ {
+  "code": "HNL",
+  "convertible": true
+ },
+ {
+  "code": "HTG",
+  "convertible": true
+ },
+ {
+  "code": "HUF",
+  "convertible": true
+ },
+ {
+  "code": "IDR",
+  "convertible": true
+ },
+ {
+  "code": "ILS",
+  "convertible": true
+ },
+ {
+  "code": "INR",
+  "convertible": true
+ },
+ {
+  "code": "IQD",
+  "convertible": true
+ },
+ {
+  "code": "IRR",
+  "convertible": true
+ },
+ {
+  "code": "ISK",
+  "convertible": true
+ },
+ {
+  "code": "JMD",
+  "convertible": true
+ },
+ {
+  "code": "JOD",
+  "convertible": true
+ },
+ {
+  "code": "JPY",
+  "convertible": true
+ },
+ {
+  "code": "KES",
+  "convertible": true
+ },
+ {
+  "code": "KGS",
+  "convertible": true
+ },
+ {
+  "code": "KHR",
+  "convertible": true
+ },
+ {
+  "code": "KMF",
+  "convertible": true
+ },
+ {
+  "code": "KPW",
+  "convertible": true
+ },
+ {
+  "code": "KRW",
+  "convertible": true
+ },
+ {
+  "code": "KWD",
+  "convertible": true
+ },
+ {
+  "code": "KYD",
+  "convertible": true
+ },
+ {
+  "code": "KZT",
+  "convertible": true
+ },
+ {
+  "code": "LAK",
+  "convertible": true
+ },
+ {
+  "code": "LBP",
+  "convertible": true
+ },
+ {
+  "code": "LKR",
+  "convertible": true
+ },
+ {
+  "code": "LRD",
+  "convertible": true
+ },
+ {
+  "code": "LSL",
+  "convertible": true
+ },
+ {
+  "code": "LYD",
+  "convertible": true
+ },
+ {
+  "code": "MAD",
+  "convertible": true
+ },
+ {
+  "code": "MDL",
+  "convertible": true
+ },
+ {
+  "code": "MGA",
+  "convertible": true
+ },
+ {
+  "code": "MKD",
+  "convertible": true
+ },
+ {
+  "code": "MMK",
+  "convertible": true
+ },
+ {
+  "code": "MNT",
+  "convertible": true
+ },
+ {
+  "code": "MOP",
+  "convertible": true
+ },
+ {
+  "code": "MRU",
+  "convertible": true
+ },
+ {
+  "code": "MUR",
+  "convertible": true
+ },
+ {
+  "code": "MVR",
+  "convertible": true
+ },
+ {
+  "code": "MWK",
+  "convertible": true
+ },
+ {
+  "code": "MXN",
+  "convertible": true
+ },
+ {
+  "code": "MYR",
+  "convertible": true
+ },
+ {
+  "code": "MZN",
+  "convertible": true
+ },
+ {
+  "code": "NAD",
+  "convertible": true
+ },
+ {
+  "code": "NGN",
+  "convertible": true
+ },
+ {
+  "code": "NIO",
+  "convertible": true
+ },
+ {
+  "code": "NOK",
+  "convertible": true
+ },
+ {
+  "code": "NPR",
+  "convertible": true
+ },
+ {
+  "code": "NZD",
+  "convertible": true
+ },
+ {
+  "code": "OMR",
+  "convertible": true
+ },
+ {
+  "code": "PEN",
+  "convertible": true
+ },
+ {
+  "code": "PGK",
+  "convertible": true
+ },
+ {
+  "code": "PHP",
+  "convertible": true
+ },
+ {
+  "code": "PKR",
+  "convertible": true
+ },
+ {
+  "code": "PLN",
+  "convertible": true
+ },
+ {
+  "code": "PYG",
+  "convertible": true
+ },
+ {
+  "code": "QAR",
+  "convertible": true
+ },
+ {
+  "code": "RON",
+  "convertible": true
+ },
+ {
+  "code": "RSD",
+  "convertible": true
+ },
+ {
+  "code": "RUB",
+  "convertible": true
+ },
+ {
+  "code": "RWF",
+  "convertible": true
+ },
+ {
+  "code": "SAR",
+  "convertible": true
+ },
+ {
+  "code": "SBD",
+  "convertible": true
+ },
+ {
+  "code": "SCR",
+  "convertible": true
+ },
+ {
+  "code": "SDG",
+  "convertible": true
+ },
+ {
+  "code": "SEK",
+  "convertible": true
+ },
+ {
+  "code": "SGD",
+  "convertible": true
+ },
+ {
+  "code": "SLE",
+  "convertible": true
+ },
+ {
+  "code": "SOS",
+  "convertible": true
+ },
+ {
+  "code": "SRD",
+  "convertible": true
+ },
+ {
+  "code": "SSP",
+  "convertible": true
+ },
+ {
+  "code": "STN",
+  "convertible": true
+ },
+ {
+  "code": "SYP",
+  "convertible": true
+ },
+ {
+  "code": "SZL",
+  "convertible": true
+ },
+ {
+  "code": "THB",
+  "convertible": true
+ },
+ {
+  "code": "TJS",
+  "convertible": true
+ },
+ {
+  "code": "TMT",
+  "convertible": true
+ },
+ {
+  "code": "TND",
+  "convertible": true
+ },
+ {
+  "code": "TOP",
+  "convertible": true
+ },
+ {
+  "code": "TRY",
+  "convertible": true
+ },
+ {
+  "code": "TTD",
+  "convertible": true
+ },
+ {
+  "code": "TWD",
+  "convertible": true
+ },
+ {
+  "code": "TZS",
+  "convertible": true
+ },
+ {
+  "code": "UAH",
+  "convertible": true
+ },
+ {
+  "code": "UGX",
+  "convertible": true
+ },
+ {
+  "code": "USD",
+  "convertible": true
+ },
+ {
+  "code": "UYU",
+  "convertible": true
+ },
+ {
+  "code": "UZS",
+  "convertible": true
+ },
+ {
+  "code": "VES",
+  "convertible": true
+ },
+ {
+  "code": "VND",
+  "convertible": true
+ },
+ {
+  "code": "VUV",
+  "convertible": true
+ },
+ {
+  "code": "WST",
+  "convertible": true
+ },
+ {
+  "code": "XAF",
+  "convertible": true
+ },
+ {
+  "code": "XCD",
+  "convertible": true
+ },
+ {
+  "code": "XOF",
+  "convertible": true
+ },
+ {
+  "code": "XPF",
+  "convertible": true
+ },
+ {
+  "code": "YER",
+  "convertible": true
+ },
+ {
+  "code": "ZAR",
+  "convertible": true
+ },
+ {
+  "code": "ZMW",
+  "convertible": true
+ },
+ {
+  "code": "ZWG",
+  "convertible": true
+ }
+]
