@@ -184,3 +184,43 @@ class TransactionModel(Base):
     foreign_fee_charge: Mapped["TransactionModel | None"] = relationship(
         uselist=False, cascade="all, delete-orphan", passive_deletes=True, lazy="selectin"
     )
+
+
+class GoalModel(Base):
+    __tablename__ = "goals"
+    __table_args__ = (
+        CheckConstraint("target_amount > 0", name="ck_goals_target_positive"),
+        Index("ix_goals_user_status", "user_id", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(80))
+    kind: Mapped[str] = mapped_column(String(10), default="personal")
+    icon: Mapped[str] = mapped_column(String(16), default="", server_default="")
+    color: Mapped[str] = mapped_column(String(7), default="#3E9A55")
+    target_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    currency: Mapped[str] = mapped_column(String(3))
+    target_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    note: Mapped[str] = mapped_column(String(255), default="", server_default="")
+    status: Mapped[str] = mapped_column(String(10), default="active")
+    completed_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_on: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class GoalContributionModel(Base):
+    __tablename__ = "goal_contributions"
+    __table_args__ = (
+        CheckConstraint("amount <> 0", name="ck_goal_contributions_amount_not_zero"),
+        Index("ix_goal_contributions_goal_date", "goal_id", "date"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    goal_id: Mapped[int] = mapped_column(ForeignKey("goals.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    date: Mapped[date] = mapped_column(Date)
+    note: Mapped[str] = mapped_column(String(255), default="", server_default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

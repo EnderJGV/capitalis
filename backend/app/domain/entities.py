@@ -7,6 +7,8 @@ from typing import Literal
 from .exceptions import (
     InvalidAmount,
     InvalidCardDays,
+    InvalidContribution,
+    InvalidGoalTarget,
     InvalidCreditLimit,
     InvalidFee,
     InvalidInstallments,
@@ -20,6 +22,10 @@ AccountKind = Literal["checking", "savings", "digital", "cash", "investment", "c
 CardNetwork = Literal[
     "visa", "mastercard", "amex", "elo", "hipercard", "diners", "discover", "jcb", "unionpay", "cabal", "other"
 ]
+GoalKind = Literal["material", "personal"]
+#: active → completed (meta alcanzada, sigue reservado) → achieved (logrado); archived = abandonado.
+GoalStatus = Literal["active", "completed", "achieved", "archived"]
+GoalPace = Literal["on_track", "slightly_behind", "behind", "overdue"]
 StatementStatus = Literal["future", "open", "closed", "partial", "overdue", "paid", "credit"]
 
 MIN_INSTALLMENTS, MAX_INSTALLMENTS = 2, 48
@@ -276,3 +282,60 @@ class CurrencyAmount:
     currency: str
     income: Decimal
     expense: Decimal
+
+
+@dataclass
+class Goal:
+    """Objetivo de ahorro, material (un auto) o personal (un viaje). Siempre se mide en dinero."""
+
+    id: int | None
+    user_id: int
+    name: str
+    target_amount: Decimal
+    currency: str
+    kind: GoalKind = "personal"
+    icon: str = ""
+    color: str = "#3E9A55"
+    target_date: Date | None = None
+    note: str = ""
+    status: GoalStatus = "active"
+    #: Fecha en que se alcanzó la meta (estado completed o achieved).
+    completed_on: Date | None = None
+    created_on: Date = field(default_factory=Date.today)
+
+    def __post_init__(self):
+        if self.target_amount <= 0:
+            raise InvalidGoalTarget()
+
+
+@dataclass
+class GoalContribution:
+    """Aporte (positivo) o retiro (negativo) virtual: el dinero sigue en su cuenta, solo queda reservado."""
+
+    id: int | None
+    goal_id: int
+    user_id: int
+    amount: Decimal
+    date: Date
+    note: str = ""
+    #: Cuenta donde está ese dinero; solo informativa.
+    account_id: int | None = None
+
+    def __post_init__(self):
+        if self.amount == 0:
+            raise InvalidContribution()
+
+
+@dataclass(frozen=True)
+class GoalProgress:
+    goal: Goal
+    saved: Decimal
+    remaining: Decimal
+    #: Cuánto se ahorró por encima de la meta.
+    over: Decimal
+    #: 0–100.
+    percent: int
+    months_left: int | None
+    monthly_needed: Decimal | None
+    pace: GoalPace | None
+    projected_date: Date | None

@@ -128,3 +128,27 @@ class ForeignFeeLocked(DomainError):
 
 class RefundOnlyOnCards(DomainError):
     message = "Los reembolsos solo se registran en tarjetas de crédito"
+
+
+class GoalNotFound(DomainError):
+    message = "Objetivo no encontrado"
+
+
+class InvalidGoalTarget(DomainError):
+    message = "La meta del objetivo debe ser mayor que 0"
+
+
+class GoalWithdrawalTooLarge(DomainError):
+    message = "No puedes retirar más de lo que hay ahorrado en el objetivo"
+
+
+class ContributionNotFound(DomainError):
+    message = "Aporte no encontrado"
+
+
+class InvalidContribution(DomainError):
+    message = "El aporte no puede ser 0"
+
+
+class InvalidGoalStatus(DomainError):
+    message = "Ese cambio de estado no es válido para el objetivo"
