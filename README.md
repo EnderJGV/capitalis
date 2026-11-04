@@ -1,6 +1,6 @@
 # Capitalis — gestión de finanzas personales (MVP)
 
-Registro/login, categorías, cuentas, tarjetas de crédito, ingresos y gastos, y un resumen mensual.
+Registro/login, categorías, cuentas, tarjetas de crédito, objetivos de ahorro, ingresos y gastos, y un resumen mensual.
 
 - **DB**: PostgreSQL 16 en Docker (es lo único que corre en Docker)
 - **Backend**: Python + FastAPI + SQLAlchemy, con Clean Architecture
@@ -68,6 +68,15 @@ cd backend
 - Un reembolso en la tarjeta reduce la deuda y resta del gasto de su categoría (no cuenta como ingreso).
 - El Resumen avisa de las facturas que vencen en 7 días (ámbar) o ya vencieron (rojo), con botón para pagar. Si hay alguna vencida, el menú muestra un punto rojo.
 
+## Objetivos de ahorro
+
+- Un objetivo es una meta en dinero, **material** (un auto, un celular) o **personal** (un viaje, un fondo de emergencia), con monto, moneda y fecha límite opcional. Las plantillas solo cambian el emoji y el color: la lógica es la misma.
+- Los **aportes son virtuales**: el dinero sigue en su cuenta y solo queda reservado para el objetivo. No son movimientos, así que no cambian saldos, ingresos ni gastos. Un aporte negativo es un retiro, y no puede dejar el objetivo en negativo.
+- Con fecha límite se calcula cuánto aportar por mes (meses restantes contando el actual), el ritmo (al día, un poco atrasado, atrasado o vencido) y, con el promedio de los últimos 3 meses, cuándo se cumpliría.
+- Estados: activo → **cumplido** al llegar a la meta (sigue reservado; si un retiro lo baja vuelve a activo) → **logrado** cuando la persona lo marca (deja de reservar y ofrece "Registrar el gasto"). También se puede archivar y reactivar.
+- Al llegar a la meta aparece una celebración, una sola vez. El Resumen muestra lo reservado y lo libre, y los 3 objetivos más cercanos.
+- API: `/api/goals` (CRUD, `POST /{id}/status` y `/{id}/contributions`); la lógica pura está en `backend/app/domain/goals.py`.
+
 ## Arquitectura del backend (`backend/app`)
 
 Las dependencias apuntan siempre hacia adentro: `presentation → application → domain` e `infrastructure → application/domain`.
@@ -96,6 +105,7 @@ Las dependencias apuntan siempre hacia adentro: `presentation → application �
 - Conectar cuentas automáticamente con los bancos (Open Finance) e importar extractos (OFX/CSV/PDF).
 - Intereses del rotativo y pago mínimo calculados automáticamente (hoy se registran como un gasto).
 - Avisos de vencimiento por e-mail o push.
+- Objetivos: mover dinero real a una cuenta de ahorro vinculada, aportes recurrentes y objetivos compartidos.
 - Tarjetas adicionales y tarjetas con dos monedas.
 - Más tests (repositorios SQL con una base de prueba).
 - Dockerizar backend y frontend cuando haga falta.

@@ -61,6 +61,8 @@ export const es = {
     goToCurrent: 'Ir al mes actual',
   },
   dashboard: {
+    yourGoals: 'Tus objetivos',
+    seeGoals: 'Ver objetivos',
     yourAccounts: 'Tus cuentas',
     addAccount: 'Agregar cuenta',
     seeAccounts: 'Ver cuentas',
@@ -78,6 +80,8 @@ export const es = {
     upcoming: 'Próximas facturas',
   },
   balance: {
+    reserved: 'Reservado para objetivos',
+    free: 'Libre',
     approximate: 'Aproximado: convertido a {currency} con la cotización de hoy',
     missing: 'Sin cotización para {currencies}: no se incluye en el total.',
     total: 'Saldo total',

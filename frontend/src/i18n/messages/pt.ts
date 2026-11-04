@@ -59,6 +59,8 @@ export const pt: Messages = {
     goToCurrent: 'Ir para o mês atual',
   },
   dashboard: {
+    yourGoals: 'Seus objetivos',
+    seeGoals: 'Ver objetivos',
     yourAccounts: 'Suas contas',
     addAccount: 'Adicionar conta',
     seeAccounts: 'Ver contas',
@@ -76,6 +78,8 @@ export const pt: Messages = {
     upcoming: 'Próximas faturas',
   },
   balance: {
+    reserved: 'Reservado para objetivos',
+    free: 'Livre',
     approximate: 'Aproximado: convertido para {currency} com a cotação de hoje',
     missing: 'Sem cotação para {currencies}: não entra no total.',
     total: 'Saldo total',

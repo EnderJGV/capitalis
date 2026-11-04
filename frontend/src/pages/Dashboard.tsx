@@ -13,6 +13,7 @@ import { SectionTitle, StatCard } from '@/components/app/StatCard'
 import { TransactionList, TransactionListSkeleton } from '@/components/app/TransactionList'
 import { useTransactionEditor } from '@/components/app/TransactionEditorProvider'
 import { UpcomingStatements } from '@/components/app/UpcomingStatements'
+import { DashboardGoals } from '@/components/app/DashboardGoals'
 import { Button } from '@/components/ui/button'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -37,7 +38,7 @@ export default function Dashboard() {
     income: { label: t.common.incomes, color: 'var(--income)' },
     expense: { label: t.common.expenses, color: 'var(--expense)' },
   } satisfies ChartConfig
-  const { openNew, openEdit, openAccount, openTransfer, revision } = useTransactionEditor()
+  const { openNew, openEdit, openAccount, openTransfer, openGoal, revision } = useTransactionEditor()
   const [month, setMonth] = useMonthParam()
   const [data, setData] = useState<Data | null>(null)
   const [loadedMonth, setLoadedMonth] = useState('')
@@ -119,6 +120,7 @@ export default function Dashboard() {
             currency={summary.currency}
             approximate={summary.approximate}
             missing={summary.missing_currencies}
+            reserved={Number(summary.goals?.reserved ?? 0)}
           />
         )}
 
@@ -185,6 +187,10 @@ export default function Dashboard() {
               </button>
             </HorizontalScroller>
           </section>
+        )}
+
+        {summary?.goals && summary.goals.top.length > 0 && (
+          <DashboardGoals goals={summary.goals} onNew={() => openGoal()} />
         )}
 
         <section aria-labelledby="recent-title" className="flex min-w-0 flex-col xl:col-span-2">

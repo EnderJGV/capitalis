@@ -18,11 +18,13 @@ interface Props {
   /** Monedas sin cotización (sus cuentas quedan fuera del total). */
   missing?: string[]
   currency: string
+  /** Reservado para objetivos (en la moneda principal); la línea solo aparece si hay algo reservado. */
+  reserved?: number
   className?: string
 }
 
 /** Tarjeta principal del Resumen: el saldo total de la cuenta, sobre el fondo de marca. */
-export function BalanceHero({ total, monthBalance, monthName, money, approximate, missing = [], currency, className }: Props) {
+export function BalanceHero({ total, monthBalance, monthName, money, approximate, missing = [], currency, reserved = 0, className }: Props) {
   const { t } = useI18n()
   const animated = useCountUp(total)
   const up = monthBalance >= 0
@@ -58,6 +60,16 @@ export function BalanceHero({ total, monthBalance, monthName, money, approximate
           {approximate && '≈ '}
           {money(animated)}
         </p>
+        {reserved > 0 && (
+          <p className="tabular mt-1 flex flex-wrap items-center gap-x-3 type-meta">
+            <span>
+              {t.balance.reserved}: <span className="font-semibold text-sidebar-accent-foreground">{money(reserved)}</span>
+            </span>
+            <span>
+              {t.balance.free}: <span className={cn("font-semibold", total - reserved < 0 ? "text-[#F7A39E]" : "text-sidebar-accent-foreground")}>{money(total - reserved)}</span>
+            </span>
+          </p>
+        )}
         {approximate && <p className="mt-1 type-caption">{format(t.balance.approximate, { currency })}</p>}
         {missing.length > 0 && (
           <p className="mt-1 type-caption text-[#F7A39E]">{format(t.balance.missing, { currencies: missing.join(', ') })}</p>
