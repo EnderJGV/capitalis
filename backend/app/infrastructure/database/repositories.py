@@ -13,6 +13,8 @@ from ...domain.entities import (
     CategoryTotal,
     CreditCard,
     CurrencyAmount,
+    Goal,
+    GoalContribution,
     InstallmentPlan,
     Transaction,
     Transfer,
@@ -25,6 +27,8 @@ from .models import (
     CategoryModel,
     CreditCardModel,
     ExchangeRateModel,
+    GoalContributionModel,
+    GoalModel,
     InstallmentPlanModel,
     TransactionModel,
     TransferModel,
@@ -65,6 +69,20 @@ def _account(m: AccountModel, balance: Decimal | None = None) -> Account:
         archived=m.archived,
         balance=balance,
         card=_card(m.card) if m.card else None,
+    )
+
+
+def _goal(m: GoalModel) -> Goal:
+    return Goal(
+        id=m.id, user_id=m.user_id, name=m.name, target_amount=m.target_amount, currency=m.currency, kind=m.kind,
+        icon=m.icon, color=m.color, target_date=m.target_date, note=m.note, status=m.status,
+        completed_on=m.completed_on, created_on=m.created_on,
+    )
+
+
+def _contribution(m: GoalContributionModel) -> GoalContribution:
+    return GoalContribution(
+        id=m.id, goal_id=m.goal_id, user_id=m.user_id, amount=m.amount, date=m.date, note=m.note, account_id=m.account_id
     )
 
 
@@ -394,6 +412,95 @@ class SqlTransactionRepository:
 
     def delete(self, user_id: int, transaction_id: int) -> None:
         m = self._owned(user_id, transaction_id)
+        if m:
+            self._s.delete(m)
+            self._s.flush()
+
+
+class SqlGoalRepository:
+    def __init__(self, session: Session):
+        self._s = session
+
+    def _owned(self, user_id: int, goal_id: int) -> GoalModel | None:
+        return self._s.scalar(select(GoalModel).where(GoalModel.id == goal_id, GoalModel.user_id == user_id))
+
+    def list(self, user_id: int) -> list[Goal]:
+        rows = self._s.scalars(select(GoalModel).where(GoalModel.user_id == user_id).order_by(GoalModel.id))
+        return [_goal(m) for m in rows]
+
+    def get(self, user_id: int, goal_id: int) -> Goal | None:
+        m = self._owned(user_id, goal_id)
+        return _goal(m) if m else None
+
+    @staticmethod
+    def _fields(m: GoalModel, g: Goal) -> None:
+        m.name, m.kind, m.icon, m.color = g.name, g.kind, g.icon, g.color
+        m.target_amount, m.currency, m.target_date, m.note = g.target_amount, g.currency, g.target_date, g.note
+        m.status, m.completed_on, m.created_on = g.status, g.completed_on, g.created_on
+
+    def add(self, goal: Goal) -> Goal:
+        m = GoalModel(user_id=goal.user_id)
+        self._fields(m, goal)
+        self._s.add(m)
+        self._s.flush()
+        return _goal(m)
+
+    def update(self, goal: Goal) -> Goal:
+        m = self._owned(goal.user_id, goal.id)
+        self._fields(m, goal)
+        self._s.flush()
+        return _goal(m)
+
+    def delete(self, user_id: int, goal_id: int) -> None:
+        m = self._owned(user_id, goal_id)
+        if m:
+            self._s.execute(delete(GoalContributionModel).where(GoalContributionModel.goal_id == goal_id))
+            self._s.delete(m)
+            self._s.flush()
+
+
+class SqlGoalContributionRepository:
+    def __init__(self, session: Session):
+        self._s = session
+
+    def _owned(self, user_id: int, contribution_id: int) -> GoalContributionModel | None:
+        return self._s.scalar(
+            select(GoalContributionModel).where(
+                GoalContributionModel.id == contribution_id, GoalContributionModel.user_id == user_id
+            )
+        )
+
+    def list(self, goal_id: int) -> list[GoalContribution]:
+        rows = self._s.scalars(
+            select(GoalContributionModel)
+            .where(GoalContributionModel.goal_id == goal_id)
+            .order_by(GoalContributionModel.date.desc(), GoalContributionModel.id.desc())
+        )
+        return [_contribution(m) for m in rows]
+
+    def get(self, user_id: int, contribution_id: int) -> GoalContribution | None:
+        m = self._owned(user_id, contribution_id)
+        return _contribution(m) if m else None
+
+    @staticmethod
+    def _fields(m: GoalContributionModel, c: GoalContribution) -> None:
+        m.goal_id, m.amount, m.date, m.note, m.account_id = c.goal_id, c.amount, c.date, c.note, c.account_id
+
+    def add(self, contribution: GoalContribution) -> GoalContribution:
+        m = GoalContributionModel(user_id=contribution.user_id)
+        self._fields(m, contribution)
+        self._s.add(m)
+        self._s.flush()
+        return _contribution(m)
+
+    def update(self, contribution: GoalContribution) -> GoalContribution:
+        m = self._owned(contribution.user_id, contribution.id)
+        self._fields(m, contribution)
+        self._s.flush()
+        return _contribution(m)
+
+    def delete(self, user_id: int, contribution_id: int) -> None:
+        m = self._owned(user_id, contribution_id)
         if m:
             self._s.delete(m)
             self._s.flush()

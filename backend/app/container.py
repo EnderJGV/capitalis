@@ -12,6 +12,17 @@ from .application.cards import (
 )
 from .application.categories import CreateCategory, DeleteCategory, ListCategories, UpdateCategory
 from .application.dashboard import GetSummary
+from .application.goals import (
+    AddContribution,
+    CreateGoal,
+    DeleteContribution,
+    DeleteGoal,
+    GetGoal,
+    ListGoals,
+    SetGoalStatus,
+    UpdateContribution,
+    UpdateGoal,
+)
 from .application.installments import ListInstallments
 from .application.rates import CurrencyConverter, GetRate
 from .application.transactions import CreateTransaction, DeleteTransaction, ListTransactions, UpdateTransaction
@@ -55,6 +66,16 @@ class Container:
         self.update_card = UpdateCreditCard(uow_factory)
         self.delete_card = DeleteCreditCard(uow_factory)
         self.list_installments = ListInstallments(uow_factory)
+
+        self.list_goals = ListGoals(uow_factory)
+        self.get_goal = GetGoal(uow_factory)
+        self.create_goal = CreateGoal(uow_factory)
+        self.update_goal = UpdateGoal(uow_factory)
+        self.delete_goal = DeleteGoal(uow_factory)
+        self.set_goal_status = SetGoalStatus(uow_factory)
+        self.add_contribution = AddContribution(uow_factory)
+        self.update_contribution = UpdateContribution(uow_factory)
+        self.delete_contribution = DeleteContribution(uow_factory)
 
         self.list_transfers = ListTransfers(uow_factory)
         self.create_transfer = CreateTransfer(uow_factory)

@@ -225,6 +225,18 @@ class CardOverview:
 
 
 @dataclass(frozen=True)
+class GoalsOverview:
+    """Objetivos en el Resumen: lo reservado (en la moneda principal) y los más cercanos."""
+
+    #: Ahorrado en objetivos activos y cumplidos, convertido a la moneda principal.
+    reserved: Decimal
+    #: Saldo total − reservado.
+    free: Decimal
+    active_count: int
+    top: list["GoalProgress"]
+
+
+@dataclass(frozen=True)
 class Summary:
     """Totales del mes en la moneda principal del usuario (`currency`)."""
 
@@ -243,6 +255,7 @@ class Summary:
     accounts: list[AccountBalance] = field(default_factory=list)
     #: Tarjetas activas con su factura abierta y la próxima a vencer (para los avisos de vencimiento).
     cards: list["CardOverview"] = field(default_factory=list)
+    goals: GoalsOverview | None = None
 
 
 @dataclass

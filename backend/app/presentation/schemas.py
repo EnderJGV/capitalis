@@ -262,6 +262,87 @@ class TransferOut(BaseModel):
     description: str
 
 
+GoalKind = Literal["material", "personal"]
+GoalPace = Literal["on_track", "slightly_behind", "behind", "overdue"]
+
+
+class GoalIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    kind: GoalKind = "personal"
+    icon: str = Field(default="", max_length=16)
+    color: str = Field(default="#3E9A55", pattern=r"^#[0-9a-fA-F]{6}$")
+    target_amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    currency: Currency
+    target_date: date | None = None
+    note: str = Field(default="", max_length=255)
+    #: Solo al crear: lo que ya se tiene ahorrado.
+    initial_amount: Decimal | None = Field(default=None, gt=0, max_digits=14, decimal_places=2)
+
+
+class GoalOut(BaseModel):
+    id: int
+    name: str
+    kind: str
+    icon: str
+    color: str
+    target_amount: Decimal
+    currency: str
+    target_date: date | None
+    note: str
+    #: active, completed (meta alcanzada), achieved (logrado) o archived.
+    status: str
+    completed_on: date | None
+    created_on: date
+    saved: Decimal
+    remaining: Decimal
+    over: Decimal
+    percent: int
+    months_left: int | None
+    monthly_needed: Decimal | None
+    pace: GoalPace | None
+    projected_date: date | None
+
+
+class ContributionIn(BaseModel):
+    #: Positivo = aporte, negativo = retiro.
+    amount: Decimal = Field(max_digits=14, decimal_places=2)
+    date: date
+    note: str = Field(default="", max_length=255)
+    account_id: int | None = None
+
+
+class ContributionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    goal_id: int
+    amount: Decimal
+    date: date
+    note: str
+    account_id: int | None
+
+
+class GoalDetailOut(GoalOut):
+    contributions: list[ContributionOut]
+
+
+class ContributionResultOut(BaseModel):
+    goal: GoalOut
+    contribution: ContributionOut | None
+    #: El objetivo acaba de llegar a la meta con este cambio.
+    just_completed: bool
+
+
+class GoalStatusIn(BaseModel):
+    status: Literal["active", "achieved", "archived"]
+
+
+class GoalsOverviewOut(BaseModel):
+    reserved: Decimal
+    free: Decimal
+    active_count: int
+    top: list[GoalOut]
+
+
 class RateOut(BaseModel):
     base: str
     quote: str
@@ -299,3 +380,4 @@ class SummaryOut(BaseModel):
     missing_currencies: list[str]
     accounts: list[AccountOut]
     cards: list[CardOut] = []
+    goals: GoalsOverviewOut | None = None

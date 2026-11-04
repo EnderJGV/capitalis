@@ -9,6 +9,8 @@ from app.domain.entities import (
     Category,
     CategoryTotal,
     CurrencyAmount,
+    Goal,
+    GoalContribution,
     InstallmentPlan,
     Transaction,
     Transfer,
@@ -27,6 +29,8 @@ class Store:
         self.transactions: dict[int, Transaction] = {}
         self.transfers: dict[int, Transfer] = {}
         self.plans: dict[int, InstallmentPlan] = {}
+        self.goals: dict[int, Goal] = {}
+        self.contributions: dict[int, GoalContribution] = {}
         self.rates: dict[date, dict[str, Decimal]] = {}
         self._ids = 0
 
@@ -158,6 +162,57 @@ class FakeTransactions:
             self.s.transactions.pop(t.id)
 
 
+class FakeGoals:
+    def __init__(self, s: Store):
+        self.s = s
+
+    def list(self, user_id):
+        return [g for g in self.s.goals.values() if g.user_id == user_id]
+
+    def get(self, user_id, goal_id):
+        g = self.s.goals.get(goal_id)
+        return g if g and g.user_id == user_id else None
+
+    def add(self, goal):
+        created = replace(goal, id=self.s.next_id())
+        self.s.goals[created.id] = created
+        return created
+
+    def update(self, goal):
+        self.s.goals[goal.id] = goal
+        return goal
+
+    def delete(self, user_id, goal_id):
+        self.s.goals.pop(goal_id, None)
+        for c in [c for c in self.s.contributions.values() if c.goal_id == goal_id]:
+            self.s.contributions.pop(c.id)
+
+
+class FakeGoalContributions:
+    def __init__(self, s: Store):
+        self.s = s
+
+    def list(self, goal_id):
+        rows = [c for c in self.s.contributions.values() if c.goal_id == goal_id]
+        return sorted(rows, key=lambda c: (c.date, c.id), reverse=True)
+
+    def get(self, user_id, contribution_id):
+        c = self.s.contributions.get(contribution_id)
+        return c if c and c.user_id == user_id else None
+
+    def add(self, contribution):
+        created = replace(contribution, id=self.s.next_id())
+        self.s.contributions[created.id] = created
+        return created
+
+    def update(self, contribution):
+        self.s.contributions[contribution.id] = contribution
+        return contribution
+
+    def delete(self, user_id, contribution_id):
+        self.s.contributions.pop(contribution_id, None)
+
+
 class FakeInstallmentPlans:
     def __init__(self, s: Store):
         self.s = s
@@ -282,6 +337,8 @@ class FakeUnitOfWork:
         self.accounts = FakeAccounts(store)
         self.transactions = FakeTransactions(store)
         self.installment_plans = FakeInstallmentPlans(store)
+        self.goals = FakeGoals(store)
+        self.goal_contributions = FakeGoalContributions(store)
         self.transfers = FakeTransfers(store)
         self.rates = FakeRates(store)
         self.reports = FakeReports(store)

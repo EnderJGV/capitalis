@@ -1,7 +1,16 @@
 from datetime import date
 from decimal import Decimal
 
-from ..domain.entities import AccountBalance, CategoryTotal, CurrencyAmount, MonthTotal, Summary, User
+from ..domain.entities import (
+    AccountBalance,
+    CategoryTotal,
+    CurrencyAmount,
+    GoalsOverview,
+    MonthTotal,
+    Summary,
+    User,
+)
+from ..domain.goals import build_progress
 from ..domain.periods import current_month, month_range, shift_month
 from .cards import card_overview
 from .ports import UnitOfWorkFactory
@@ -60,6 +69,11 @@ class GetSummary:
             monthly = uow.reports.monthly_totals(user.id, date(first_year, first_month, 1), end)
             accounts = uow.accounts.list(user.id, include_archived=True)
             cards = [card_overview(uow, user.id, a, today) for a in accounts if a.is_card and not a.archived]
+            goal_items = [
+                build_progress(g, [(c.date, c.amount) for c in uow.goal_contributions.list(g.id)], today)
+                for g in uow.goals.list(user.id)
+                if g.status in ("active", "completed")
+            ]
 
         t = _Totals(self._converter, user.currency)
         income, expense = t.sum(totals, min(end, today))
@@ -97,6 +111,17 @@ class GetSummary:
             if not account.archived:
                 balances.append(AccountBalance(account, None if account.currency in t.missing else converted))
 
+        # Lo ahorrado en objetivos sigue en las cuentas: se reserva, no se resta del patrimonio.
+        reserved = ZERO
+        for item in goal_items:
+            amount = t.convert(item.saved, item.goal.currency, today)
+            if item.goal.currency not in t.missing:
+                reserved += amount
+        active = sorted(
+            (i for i in goal_items if i.goal.status == "active"),
+            key=lambda i: (i.goal.target_date is None, i.goal.target_date or today, -i.percent),
+        )
+
         return Summary(
             month=month,
             income=income,
@@ -110,4 +135,5 @@ class GetSummary:
             missing_currencies=sorted(t.missing),
             accounts=balances,
             cards=cards,
+            goals=GoalsOverview(reserved=reserved, free=total_balance - reserved, active_count=len(active), top=active[:3]),
         )

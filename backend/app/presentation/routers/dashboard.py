@@ -6,6 +6,7 @@ from ..dependencies import get_container, get_current_user
 from ..schemas import SummaryOut
 from .accounts import account_out
 from .cards import card_out
+from .goals import goals_overview_out
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -26,4 +27,5 @@ def summary(month: str | None = None, user: User = Depends(get_current_user), c:
         missing_currencies=s.missing_currencies,
         accounts=[account_out(a) for a in s.accounts],
         cards=[card_out(card) for card in s.cards],
+        goals=goals_overview_out(s.goals) if s.goals else None,
     )

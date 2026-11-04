@@ -35,6 +35,12 @@ STATUS_BY_ERROR: dict[type[exc.DomainError], int] = {
     exc.InstallmentsOnlyOnCards: status.HTTP_422_UNPROCESSABLE_ENTITY,
     exc.RefundOnlyOnCards: status.HTTP_422_UNPROCESSABLE_ENTITY,
     exc.ForeignFeeLocked: status.HTTP_409_CONFLICT,
+    exc.GoalNotFound: status.HTTP_404_NOT_FOUND,
+    exc.ContributionNotFound: status.HTTP_404_NOT_FOUND,
+    exc.InvalidGoalTarget: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.InvalidContribution: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.GoalWithdrawalTooLarge: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    exc.InvalidGoalStatus: status.HTTP_409_CONFLICT,
 }
 
 
