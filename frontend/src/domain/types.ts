@@ -182,6 +182,87 @@ export interface TransferInput {
   description: string
 }
 
+export type GoalKind = 'material' | 'personal'
+/** active → completed (meta alcanzada, sigue reservado) → achieved (logrado); archived = abandonado. */
+export type GoalStatus = 'active' | 'completed' | 'achieved' | 'archived'
+export type GoalPace = 'on_track' | 'slightly_behind' | 'behind' | 'overdue'
+
+/** Objetivo de ahorro con su progreso. Siempre se mide en dinero. */
+export interface Goal {
+  id: number
+  name: string
+  kind: GoalKind
+  icon: string
+  color: string
+  target_amount: string
+  currency: Currency
+  target_date: string | null
+  note: string
+  status: GoalStatus
+  completed_on: string | null
+  created_on: string
+  saved: string
+  remaining: string
+  /** Lo ahorrado por encima de la meta. */
+  over: string
+  /** 0–100. */
+  percent: number
+  months_left: number | null
+  /** Cuánto aportar por mes para llegar a la fecha límite. */
+  monthly_needed: string | null
+  pace: GoalPace | null
+  projected_date: string | null
+}
+
+export interface GoalInput {
+  name: string
+  kind: GoalKind
+  icon: string
+  color: string
+  target_amount: string
+  currency: Currency
+  target_date: string | null
+  note: string
+  /** Solo al crear: lo que ya se tiene ahorrado. */
+  initial_amount?: string | null
+}
+
+/** Aporte (positivo) o retiro (negativo) virtual: el dinero sigue en su cuenta. */
+export interface GoalContribution {
+  id: number
+  goal_id: number
+  amount: string
+  date: string
+  note: string
+  account_id: number | null
+}
+
+export interface GoalDetail extends Goal {
+  contributions: GoalContribution[]
+}
+
+export interface ContributionInput {
+  amount: string
+  date: string
+  note: string
+  account_id: number | null
+}
+
+export interface ContributionResult {
+  goal: Goal
+  contribution: GoalContribution | null
+  /** El objetivo acaba de llegar a la meta con este cambio. */
+  just_completed: boolean
+}
+
+/** Objetivos en el Resumen: lo reservado (en la moneda principal) y los más cercanos. */
+export interface GoalsOverview {
+  reserved: string
+  free: string
+  active_count: number
+  top: Goal[]
+}
+
 export interface Rate {
   base: Currency
   quote: Currency
@@ -291,4 +372,5 @@ export interface Summary {
   accounts: Account[]
   /** Tarjetas activas, para los avisos de vencimiento. */
   cards: CreditCard[]
+  goals: GoalsOverview | null
 }

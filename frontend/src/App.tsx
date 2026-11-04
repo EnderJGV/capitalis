@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthLayout } from './components/app/AuthLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import AccountDetail from './pages/AccountDetail'
+import Goals from './pages/Goals'
 import Accounts from './pages/Accounts'
 import Categories from './pages/Categories'
 import Dashboard from './pages/Dashboard'
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/movimientos" element={<Movements />} />
         <Route path="/cuentas" element={<Accounts />} />
         <Route path="/cuentas/:id" element={<AccountDetail />} />
+        <Route path="/objetivos" element={<Goals />} />
         <Route path="/categorias" element={<Categories />} />
         <Route path="/configuracion" element={<Settings />} />
       </Route>

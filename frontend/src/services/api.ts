@@ -8,8 +8,14 @@ import type {
   InstitutionKind,
   Category,
   CategoryInput,
+  ContributionInput,
+  ContributionResult,
   CreditCard,
   Currency,
+  Goal,
+  GoalDetail,
+  GoalInput,
+  GoalStatus,
   InstallmentProgress,
   Rate,
   Statement,
@@ -72,6 +78,22 @@ export const cardsApi = {
   create: (data: CardInput) => http<CreditCard>('/cards', { method: 'POST', body: data }),
   update: (id: number, data: CardInput) => http<CreditCard>(`/cards/${id}`, { method: 'PUT', body: data }),
   remove: (id: number) => http<void>(`/cards/${id}`, { method: 'DELETE' }),
+}
+
+export const goalsApi = {
+  list: () => http<Goal[]>('/goals'),
+  get: (id: number) => http<GoalDetail>(`/goals/${id}`),
+  create: (data: GoalInput) => http<Goal>('/goals', { method: 'POST', body: data }),
+  update: (id: number, data: GoalInput) => http<Goal>(`/goals/${id}`, { method: 'PUT', body: data }),
+  remove: (id: number) => http<void>(`/goals/${id}`, { method: 'DELETE' }),
+  setStatus: (id: number, status: Exclude<GoalStatus, 'completed'>) =>
+    http<Goal>(`/goals/${id}/status`, { method: 'POST', body: { status } }),
+  addContribution: (id: number, data: ContributionInput) =>
+    http<ContributionResult>(`/goals/${id}/contributions`, { method: 'POST', body: data }),
+  updateContribution: (id: number, contributionId: number, data: ContributionInput) =>
+    http<ContributionResult>(`/goals/${id}/contributions/${contributionId}`, { method: 'PUT', body: data }),
+  removeContribution: (id: number, contributionId: number) =>
+    http<ContributionResult>(`/goals/${id}/contributions/${contributionId}`, { method: 'DELETE' }),
 }
 
 export const transfersApi = {

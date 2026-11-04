@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
-import type { Account, Transaction, Transfer } from '@/domain/types'
+import type { Account, Goal, Transaction, Transfer } from '@/domain/types'
 import { getMessages } from '@/i18n/runtime'
 import { accountsApi, transactionsApi, transfersApi } from '@/services/api'
 import { AccountEditor } from './AccountEditor'
 import { CardEditor } from './CardEditor'
+import { GoalEditor } from './GoalEditor'
 import { TransactionEditor } from './TransactionEditor'
 import { TransferEditor, type TransferPreset } from './TransferEditor'
 
@@ -19,6 +20,8 @@ interface QuickActionsValue {
   /** Editor de cuenta; si la cuenta es una tarjeta, abre el de tarjeta. */
   openAccount: (account?: Account) => void
   openCard: (card?: Account) => void
+  /** Editor de objetivo: sin argumento crea uno nuevo desde una plantilla. */
+  openGoal: (goal?: Goal) => void
   /** Cambia cada vez que se guarda o elimina algo; las páginas lo usan para recargar. */
   revision: number
 }
@@ -30,6 +33,7 @@ type Panel =
   | { kind: 'transfer'; initial?: Transfer; preset?: TransferPreset }
   | { kind: 'account'; initial?: Account }
   | { kind: 'card'; initial?: Account }
+  | { kind: 'goal'; initial?: Goal }
   | null
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -59,6 +63,7 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
     [],
   )
   const openCard = useCallback((card?: Account) => setPanel({ kind: 'card', initial: card }), [])
+  const openGoal = useCallback((goal?: Goal) => setPanel({ kind: 'goal', initial: goal }), [])
 
   // Atajos: N, movimiento nuevo; T, transferencia nueva.
   useEffect(() => {
@@ -97,8 +102,8 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
   const close = (open: boolean) => !open && setPanel(null)
 
   const value = useMemo(
-    () => ({ accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, revision }),
-    [accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, revision],
+    () => ({ accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, openGoal, revision }),
+    [accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, openGoal, revision],
   )
 
   return (
@@ -128,6 +133,12 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
         onOpenChange={close}
         initial={panel?.kind === 'account' ? panel.initial : undefined}
         onDone={(result) => done(getMessages().accounts[result])}
+      />
+      <GoalEditor
+        open={panel?.kind === 'goal'}
+        onOpenChange={close}
+        initial={panel?.kind === 'goal' ? panel.initial : undefined}
+        onDone={(result) => done(getMessages().goals[result])}
       />
       <CardEditor
         open={panel?.kind === 'card'}

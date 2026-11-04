@@ -9,6 +9,7 @@ import {
   PlusIcon,
   SettingsIcon,
   TagsIcon,
+  TargetIcon,
   WalletIcon,
   type LucideIcon,
 } from 'lucide-react'
@@ -34,7 +35,7 @@ import { UserMenu } from './UserMenu'
 interface NavItem {
   to: string
   /** Clave del texto en t.nav */
-  key: 'summary' | 'movements' | 'accounts' | 'categories' | 'settings'
+  key: 'summary' | 'movements' | 'accounts' | 'goals' | 'categories' | 'settings'
   icon: LucideIcon
 }
 
@@ -42,6 +43,7 @@ const NAV: NavItem[] = [
   { to: '/', key: 'summary', icon: LayoutDashboardIcon },
   { to: '/movimientos', key: 'movements', icon: ArrowLeftRightIcon },
   { to: '/cuentas', key: 'accounts', icon: WalletIcon },
+  { to: '/objetivos', key: 'goals', icon: TargetIcon },
   { to: '/categorias', key: 'categories', icon: TagsIcon },
   { to: '/configuracion', key: 'settings', icon: SettingsIcon },
 ]
@@ -304,7 +306,8 @@ function MobileTopBar() {
 
 function BottomNav({ overdue }: { overdue: boolean }) {
   const { t } = useI18n()
-  const [home, movements, accounts, , settings] = NAV
+  // Ajustes sigue en el menú del avatar; en el menú inferior van los Objetivos.
+  const [home, movements, accounts, goals] = NAV
   return (
     <nav
       aria-label={t.nav.main}
@@ -316,7 +319,7 @@ function BottomNav({ overdue }: { overdue: boolean }) {
         <QuickAddMenu />
       </div>
       <BottomNavLink item={accounts} />
-      <BottomNavLink item={settings} />
+      <BottomNavLink item={goals} />
     </nav>
   )
 }
@@ -360,12 +363,13 @@ function NavIcon({ icon: Icon, dot, ring }: { icon: LucideIcon; dot: boolean; ri
 /** Botón "+" de la barra inferior: elegir entre movimiento, transferencia o cuenta nueva. */
 function QuickAddMenu() {
   const { t } = useI18n()
-  const { openNew, openTransfer, openAccount, openCard } = useTransactionEditor()
+  const { openNew, openTransfer, openAccount, openCard, openGoal } = useTransactionEditor()
   const options = [
     { icon: TYPE_ICON.expense, label: t.quick.movement, hint: t.quick.movementHint, onSelect: openNew },
     { icon: ArrowLeftRightIcon, label: t.quick.transfer, hint: t.quick.transferHint, onSelect: () => openTransfer() },
     { icon: WalletIcon, label: t.quick.account, hint: t.quick.accountHint, onSelect: () => openAccount() },
     { icon: CreditCardIcon, label: t.quick.card, hint: t.quick.cardHint, onSelect: () => openCard() },
+    { icon: TargetIcon, label: t.quick.goal, hint: t.quick.goalHint, onSelect: () => openGoal() },
   ]
   return (
     <DropdownMenu>
