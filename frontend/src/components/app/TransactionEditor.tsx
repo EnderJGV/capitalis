@@ -55,6 +55,12 @@ import { SwitchRow } from './SwitchRow'
 
 export type EditorResult = 'created' | 'updated' | 'deleted'
 
+/** Gasto nuevo ya completado (p. ej., "Registrar el gasto" de un objetivo logrado). */
+export interface ExpensePreset {
+  amount?: string
+  description?: string
+}
+
 function daysAgoISO(days: number): string {
   const d = new Date()
   d.setDate(d.getDate() - days)
@@ -89,6 +95,8 @@ interface Props {
   onOpenChange: (open: boolean) => void
   /** Movimiento a editar; sin él, se crea uno nuevo. */
   initial?: Transaction
+  /** Datos con los que arranca un movimiento nuevo. */
+  preset?: ExpensePreset
   /** Cuentas del usuario: cada movimiento pertenece a una. */
   accounts: Account[]
   onDone: (result: EditorResult) => void
@@ -103,6 +111,7 @@ export function TransactionEditor({
   open,
   onOpenChange,
   initial,
+  preset,
   accounts,
   onDone,
   onCreateAccount,
@@ -162,8 +171,9 @@ export function TransactionEditor({
             />
           ) : (
             <EditorForm
-              key={initial?.id ?? 'new'}
+              key={initial?.id ?? `new-${preset?.description ?? ''}`}
               initial={initial}
+              preset={preset}
               accounts={accounts}
               onDone={onDone}
               onCancel={() => onOpenChange(false)}
@@ -176,12 +186,13 @@ export function TransactionEditor({
 
 interface FormProps {
   initial?: Transaction
+  preset?: ExpensePreset
   accounts: Account[]
   onDone: Props['onDone']
   onCancel: () => void
 }
 
-function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
+function EditorForm({ initial, preset, accounts, onDone, onCancel }: FormProps) {
   const { t, lang } = useI18n()
   const [categories, setCategories] = useState<Category[]>([])
   const [accountId, setAccountId] = useState<number | null>(() => {
@@ -194,7 +205,7 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
   // Una cuota se edita como la compra entera: monto total, fecha de compra y número de cuotas.
   const plan = initial?.installment_plan
   const [type, setType] = useState<TxType>(initial?.type ?? 'expense')
-  const [amount, setAmount] = useState(initial ? amountToInput(plan?.total_amount ?? initial.amount) : '')
+  const [amount, setAmount] = useState(initial ? amountToInput(plan?.total_amount ?? initial.amount) : preset?.amount ? amountToInput(preset.amount) : '')
   const [date, setDate] = useState(plan?.purchase_date ?? initial?.date ?? todayISO())
   /** 1 = un solo pago. */
   const [installments, setInstallments] = useState(plan?.installments ?? 1)
@@ -220,7 +231,7 @@ function EditorForm({ initial, accounts, onDone, onCancel }: FormProps) {
   }))
   const isForeign = canSplit && !split && foreignOn && foreign.currency !== account?.currency
   const [categoryId, setCategoryId] = useState<number | null>(initial?.category_id ?? null)
-  const [description, setDescription] = useState(initial?.description ?? '')
+  const [description, setDescription] = useState(initial?.description ?? preset?.description ?? '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 

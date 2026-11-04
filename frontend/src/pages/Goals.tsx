@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PlusIcon, TargetIcon } from 'lucide-react'
 import { BrandBackdrop } from '@/components/app/BrandBackdrop'
 import { EmptyState } from '@/components/app/EmptyState'
@@ -19,6 +20,7 @@ export default function Goals() {
   const { user } = useAuth()
   const money = useMoney()
   const { openGoal, revision } = useQuickActions()
+  const navigate = useNavigate()
   const [goals, setGoals] = useState<Goal[] | null>(null)
   const [overview, setOverview] = useState<GoalsOverview | null>(null)
   const [showArchived, setShowArchived] = useState(false)
@@ -107,7 +109,7 @@ export default function Goals() {
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {s.items.map((g) => (
-                  <GoalCard key={g.id} goal={g} onClick={openGoal} />
+                  <GoalCard key={g.id} goal={g} onClick={(goal) => navigate(`/objetivos/${goal.id}`)} />
                 ))}
               </div>
             </section>

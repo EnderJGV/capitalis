@@ -6,6 +6,7 @@ import {
   LayoutDashboardIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
+  PiggyBankIcon,
   PlusIcon,
   SettingsIcon,
   TagsIcon,
@@ -363,13 +364,14 @@ function NavIcon({ icon: Icon, dot, ring }: { icon: LucideIcon; dot: boolean; ri
 /** Botón "+" de la barra inferior: elegir entre movimiento, transferencia o cuenta nueva. */
 function QuickAddMenu() {
   const { t } = useI18n()
-  const { openNew, openTransfer, openAccount, openCard, openGoal } = useTransactionEditor()
+  const { openNew, openTransfer, openAccount, openCard, openGoal, openContribution } = useTransactionEditor()
   const options = [
     { icon: TYPE_ICON.expense, label: t.quick.movement, hint: t.quick.movementHint, onSelect: openNew },
     { icon: ArrowLeftRightIcon, label: t.quick.transfer, hint: t.quick.transferHint, onSelect: () => openTransfer() },
     { icon: WalletIcon, label: t.quick.account, hint: t.quick.accountHint, onSelect: () => openAccount() },
     { icon: CreditCardIcon, label: t.quick.card, hint: t.quick.cardHint, onSelect: () => openCard() },
     { icon: TargetIcon, label: t.quick.goal, hint: t.quick.goalHint, onSelect: () => openGoal() },
+    { icon: PiggyBankIcon, label: t.quick.contribution, hint: t.quick.contributionHint, onSelect: () => openContribution() },
   ]
   return (
     <DropdownMenu>

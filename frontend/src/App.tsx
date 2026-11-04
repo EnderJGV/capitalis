@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthLayout } from './components/app/AuthLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import AccountDetail from './pages/AccountDetail'
+import GoalDetail from './pages/GoalDetail'
 import Goals from './pages/Goals'
 import Accounts from './pages/Accounts'
 import Categories from './pages/Categories'
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/cuentas" element={<Accounts />} />
         <Route path="/cuentas/:id" element={<AccountDetail />} />
         <Route path="/objetivos" element={<Goals />} />
+        <Route path="/objetivos/:id" element={<GoalDetail />} />
         <Route path="/categorias" element={<Categories />} />
         <Route path="/configuracion" element={<Settings />} />
       </Route>

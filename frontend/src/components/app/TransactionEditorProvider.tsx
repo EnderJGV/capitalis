@@ -2,11 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { toast } from 'sonner'
 import type { Account, Goal, Transaction, Transfer } from '@/domain/types'
 import { getMessages } from '@/i18n/runtime'
-import { accountsApi, transactionsApi, transfersApi } from '@/services/api'
+import { accountsApi, goalsApi, transactionsApi, transfersApi } from '@/services/api'
 import { AccountEditor } from './AccountEditor'
 import { CardEditor } from './CardEditor'
+import { ContributionEditor, type ContributionTarget } from './ContributionEditor'
+import { GoalCelebration } from './GoalCelebration'
 import { GoalEditor } from './GoalEditor'
-import { TransactionEditor } from './TransactionEditor'
+import { TransactionEditor, type ExpensePreset } from './TransactionEditor'
 import { TransferEditor, type TransferPreset } from './TransferEditor'
 
 interface QuickActionsValue {
@@ -22,6 +24,10 @@ interface QuickActionsValue {
   openCard: (card?: Account) => void
   /** Editor de objetivo: sin argumento crea uno nuevo desde una plantilla. */
   openGoal: (goal?: Goal) => void
+  /** Aporte o retiro de un objetivo; sin objetivo, se elige de la lista. */
+  openContribution: (target?: ContributionTarget) => void
+  /** Gasto nuevo ya completado. */
+  openExpense: (preset: ExpensePreset) => void
   /** Cambia cada vez que se guarda o elimina algo; las páginas lo usan para recargar. */
   revision: number
 }
@@ -29,11 +35,12 @@ interface QuickActionsValue {
 const QuickActionsContext = createContext<QuickActionsValue | null>(null)
 
 type Panel =
-  | { kind: 'transaction'; initial?: Transaction }
+  | { kind: 'transaction'; initial?: Transaction; preset?: ExpensePreset }
   | { kind: 'transfer'; initial?: Transfer; preset?: TransferPreset }
   | { kind: 'account'; initial?: Account }
   | { kind: 'card'; initial?: Account }
   | { kind: 'goal'; initial?: Goal }
+  | { kind: 'contribution'; target: ContributionTarget }
   | null
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -46,6 +53,8 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
   const [panel, setPanel] = useState<Panel>(null)
   const [revision, setRevision] = useState(0)
   const [accounts, setAccounts] = useState<Account[] | null>(null)
+  /** Objetivo que acaba de llegar a la meta: se celebra una sola vez. */
+  const [celebrating, setCelebrating] = useState<Goal | null>(null)
 
   useEffect(() => {
     accountsApi
@@ -64,6 +73,8 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
   )
   const openCard = useCallback((card?: Account) => setPanel({ kind: 'card', initial: card }), [])
   const openGoal = useCallback((goal?: Goal) => setPanel({ kind: 'goal', initial: goal }), [])
+  const openContribution = useCallback((target: ContributionTarget = {}) => setPanel({ kind: 'contribution', target }), [])
+  const openExpense = useCallback((preset: ExpensePreset) => setPanel({ kind: 'transaction', preset }), [])
 
   // Atajos: N, movimiento nuevo; T, transferencia nueva.
   useEffect(() => {
@@ -99,11 +110,22 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
     if (purchase) setPanel({ kind: 'transaction', initial: purchase })
   }, [])
 
+  async function markAchieved(goal: Goal) {
+    setCelebrating(null)
+    try {
+      await goalsApi.setStatus(goal.id, 'achieved')
+      setRevision((r) => r + 1)
+      toast.success(getMessages().goals.achievedToast)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : getMessages().goalEditor.saveError)
+    }
+  }
+
   const close = (open: boolean) => !open && setPanel(null)
 
   const value = useMemo(
-    () => ({ accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, openGoal, revision }),
-    [accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, openGoal, revision],
+    () => ({ accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, openGoal, openContribution, openExpense, revision }),
+    [accounts, openNew, openEdit, openTransfer, openEditTransfer, openAccount, openCard, openGoal, openContribution, openExpense, revision],
   )
 
   return (
@@ -113,6 +135,7 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
         open={panel?.kind === 'transaction'}
         onOpenChange={close}
         initial={panel?.kind === 'transaction' ? panel.initial : undefined}
+        preset={panel?.kind === 'transaction' ? panel.preset : undefined}
         accounts={accounts ?? []}
         onDone={(result) => done(getMessages().editor[result])}
         onCreateAccount={() => openAccount()}
@@ -134,6 +157,21 @@ export function TransactionEditorProvider({ children }: { children: ReactNode })
         initial={panel?.kind === 'account' ? panel.initial : undefined}
         onDone={(result) => done(getMessages().accounts[result])}
       />
+      <ContributionEditor
+        open={panel?.kind === 'contribution'}
+        onOpenChange={close}
+        goal={panel?.kind === 'contribution' ? panel.target.goal : undefined}
+        initial={panel?.kind === 'contribution' ? panel.target.initial : undefined}
+        withdraw={panel?.kind === 'contribution' ? panel.target.withdraw : undefined}
+        accounts={accounts ?? []}
+        onCreateGoal={() => openGoal()}
+        onDone={(kind, result) => {
+          const t = getMessages().goals
+          done({ created: t.contributed, withdrawn: t.withdrawn, updated: t.contributionUpdated, deleted: t.contributionDeleted }[kind])
+          if (result.just_completed) setCelebrating(result.goal)
+        }}
+      />
+      <GoalCelebration goal={celebrating} onKeepSaving={() => setCelebrating(null)} onMarkAchieved={(g) => void markAchieved(g)} />
       <GoalEditor
         open={panel?.kind === 'goal'}
         onOpenChange={close}
