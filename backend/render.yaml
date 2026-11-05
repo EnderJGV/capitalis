@@ -1,0 +1,23 @@
+# Blueprint del Render para el backend (FastAPI). Las migraciones de Alembic corren solas al arrancar.
+services:
+  - type: web
+    name: capitalis-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /api/health
+    envVars:
+      # Session pooler de Supabase (IPv4): postgresql://postgres.<ref>:<clave>@aws-<n>-<región>.pooler.supabase.com:5432/postgres?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE_MINUTES
+        value: "720"
+      # Dominio del frontend en la Vercel, p. ej. https://capitalis-frontend.vercel.app
+      - key: CORS_ORIGINS
+        sync: false
+      # Opcional: también las vistas previas de la Vercel
+      - key: CORS_ORIGIN_REGEX
+        sync: false

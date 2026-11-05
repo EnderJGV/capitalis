@@ -2,6 +2,12 @@ import { getMessages } from '@/i18n/runtime'
 
 const TOKEN_KEY = 'capitalis_token'
 
+/**
+ * Origen del backend en producción (p. ej. https://capitalis-backend.onrender.com), sin "/" final.
+ * En desarrollo queda vacío y Vite redirige /api al backend local (ver vite.config.ts).
+ */
+const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),
   set: (token: string) => localStorage.setItem(TOKEN_KEY, token),
@@ -51,7 +57,7 @@ export async function http<T>(path: string, { method = 'GET', body, query }: Opt
 
   let res: Response
   try {
-    res = await fetch(`/api${path}${qs ? `?${qs}` : ''}`, {
+    res = await fetch(`${API_ORIGIN}/api${path}${qs ? `?${qs}` : ''}`, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
