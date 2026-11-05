@@ -82,7 +82,7 @@ class CreditCardModel(Base):
     closing_day: Mapped[int] = mapped_column(SmallInteger)
     due_day: Mapped[int] = mapped_column(SmallInteger)
     payment_account_id: Mapped[int | None] = mapped_column(
-        ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
@@ -98,8 +98,10 @@ class InstallmentPlanModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"))
-    category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), index=True)
+    category_id: Mapped[int | None] = mapped_column(
+        ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     description: Mapped[str] = mapped_column(String(255), default="")
     total_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     installments: Mapped[int] = mapped_column(SmallInteger)
@@ -118,8 +120,8 @@ class TransferModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    from_account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"))
-    to_account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"))
+    from_account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), index=True)
+    to_account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), index=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     received_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     rate: Mapped[Decimal] = mapped_column(Numeric(18, 8))
@@ -153,10 +155,14 @@ class TransactionModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
+    category_id: Mapped[int | None] = mapped_column(
+        ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), index=True)
     # Comisión de una transferencia: se borra junto con ella.
-    transfer_id: Mapped[int | None] = mapped_column(ForeignKey("transfers.id", ondelete="CASCADE"), nullable=True)
+    transfer_id: Mapped[int | None] = mapped_column(
+        ForeignKey("transfers.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     # Cuota de una compra en cuotas: se borra junto con el plan.
     installment_plan_id: Mapped[int | None] = mapped_column(
         ForeignKey("installment_plans.id", ondelete="CASCADE"), nullable=True, index=True
@@ -218,8 +224,10 @@ class GoalContributionModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     goal_id: Mapped[int] = mapped_column(ForeignKey("goals.id", ondelete="CASCADE"))
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    account_id: Mapped[int | None] = mapped_column(
+        ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     date: Mapped[date] = mapped_column(Date)
     note: Mapped[str] = mapped_column(String(255), default="", server_default="")

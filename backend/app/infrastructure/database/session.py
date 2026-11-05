@@ -1,11 +1,28 @@
 from pathlib import Path
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, inspect, make_url, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from ..config import settings
 
-engine = create_engine(settings.database_url, pool_pre_ping=True)
+#: Puerto del transaction pooler de Supabase (Supavisor), el indicado para funciones serverless.
+TRANSACTION_POOLER_PORT = 6543
+
+
+def engine_options(url: str) -> dict:
+    """Opciones del engine según a dónde se conecta.
+
+    Con el transaction pooler cada transacción puede ir a otra conexión del servidor: el pooler
+    ya reparte las conexiones (sin pool propio, NullPool) y no admite prepared statements
+    (psycopg los usa tras 5 ejecuciones iguales; `prepare_threshold=None` los desactiva).
+    """
+    if make_url(url).port == TRANSACTION_POOLER_PORT:
+        return {"poolclass": NullPool, "connect_args": {"prepare_threshold": None}}
+    return {"pool_pre_ping": True}
+
+
+engine = create_engine(settings.database_url, **engine_options(settings.database_url))
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
 BACKEND_DIR = Path(__file__).resolve().parents[3]

@@ -1,3 +1,7 @@
+# Postgres local para desarrollo. En producción la base es Supabase.
+# "name" fijo: el proyecto y el volumen siguen siendo "capitalis" / "capitalis_pgdata".
+name: capitalis
+
 services:
   db:
     image: postgres:16-alpine
@@ -8,7 +12,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-capitalis}
       POSTGRES_DB: ${POSTGRES_DB:-capitalis}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # 5433: el 5432 suele estar ocupado por otro Postgres. Coincide con DATABASE_URL de .env.example.
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

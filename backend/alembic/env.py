@@ -1,9 +1,9 @@
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 from app.infrastructure.config import settings
 from app.infrastructure.database import models  # noqa: F401  (registra las tablas en Base.metadata)
-from app.infrastructure.database.session import Base
+from app.infrastructure.database.session import Base, engine_options
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
@@ -24,7 +24,9 @@ def run_migrations_online() -> None:
             context.run_migrations()
         return
 
-    engine = engine_from_config(config.get_section(config.config_ini_section, {}), prefix="sqlalchemy.", poolclass=pool.NullPool)
+    options = {**engine_options(settings.database_url), "poolclass": pool.NullPool}
+    options.pop("pool_pre_ping", None)
+    engine = create_engine(settings.database_url, **options)
     with engine.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():

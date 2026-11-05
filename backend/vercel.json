@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "python -m scripts.vercel_build",
+  "functions": {
+    "app/main.py": {
+      "excludeFiles": "{tests/**,scripts/**,.venv/**,.pytest_cache/**}"
+    }
+  }
+}

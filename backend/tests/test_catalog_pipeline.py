@@ -2,6 +2,7 @@ from collections import Counter
 
 from scripts.catalog.common import clean_name, domain_from_url, search_key, slugify
 from scripts.catalog.curated.brands import BRANDS as CORE
+from scripts.catalog.curated.legacy import LEGACY_IDS
 from scripts.catalog.curated.world import WORLD
 
 BRANDS = CORE + WORLD
@@ -51,6 +52,4 @@ def test_curated_brands_are_consistent():
 
 def test_legacy_ids_are_kept():
     # Ids que ya están guardados en cuentas (catálogo anterior del frontend).
-    legacy = {"br-nubank", "br-itau", "mx-bbva", "ve-banesco", "co-nequi", "us-chase", "ar-uala", "cl-bci",
-              "pe-yape", "eu-santander", "eu-n26", "eu-bunq", "intl-wise", "intl-payoneer", "intl-mercury"}
-    assert legacy <= {b[0] for b in BRANDS}
+    assert LEGACY_IDS <= {b[0] for b in BRANDS}

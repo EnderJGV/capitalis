@@ -22,7 +22,8 @@ from .presentation.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    create_tables()
+    if settings.run_migrations_on_startup:
+        create_tables()
     yield
 
 

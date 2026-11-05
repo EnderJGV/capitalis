@@ -3,7 +3,7 @@ import { getMessages } from '@/i18n/runtime'
 const TOKEN_KEY = 'capitalis_token'
 
 /**
- * Origen del backend en producción (p. ej. https://capitalis-backend.onrender.com), sin "/" final.
+ * Origen del backend en producción (p. ej. https://capitalis-backend.vercel.app), sin "/" final.
  * En desarrollo queda vacío y Vite redirige /api al backend local (ver vite.config.ts).
  */
 const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')

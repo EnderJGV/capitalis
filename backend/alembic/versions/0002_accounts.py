@@ -13,7 +13,7 @@ Create Date: 2026-11-02
 """
 
 import sqlalchemy as sa
-from alembic import op
+from alembic import context, op
 
 revision = "0002"
 down_revision = "0001"
@@ -76,11 +76,14 @@ def upgrade() -> None:
     )
     op.create_index("ix_transactions_account_id", "transactions", ["account_id"])
 
-    # Backfill: una "Cuenta principal" por usuario con movimientos.
-    conn = op.get_bind()
-    users = conn.execute(
-        sa.text("SELECT DISTINCT u.id, u.currency, u.language FROM users u JOIN transactions t ON t.user_id = u.id")
-    ).all()
+    # Backfill: una "Cuenta principal" por usuario con movimientos. En modo offline
+    # (`alembic upgrade head --sql`, para una base nueva) no hay datos que migrar.
+    users = []
+    if not context.is_offline_mode():
+        conn = op.get_bind()
+        users = conn.execute(
+            sa.text("SELECT DISTINCT u.id, u.currency, u.language FROM users u JOIN transactions t ON t.user_id = u.id")
+        ).all()
     for user_id, currency, language in users:
         account_id = conn.execute(
             sa.text(

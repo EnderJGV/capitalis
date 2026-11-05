@@ -14,6 +14,7 @@ from datetime import date
 
 from .common import KINDS, OUTPUT, Record, fetch, search_key, slugify
 from .curated.brands import BRANDS as CORE_BRANDS
+from .curated.legacy import LEGACY_IDS
 from .curated.world import WORLD
 
 BRANDS = CORE_BRANDS + WORLD
@@ -27,9 +28,6 @@ CURRENCY_OVERRIDES = {
     "TV": "AUD", "CK": "NZD", "NU": "NZD", "GL": "DKK", "FO": "DKK", "BT": "BTN", "NA": "NAD", "LS": "LSL",
     "SZ": "SZL", "HK": "HKD", "MO": "MOP", "CW": "ANG", "SX": "ANG", "AW": "AWG",
 }
-
-LEGACY_IDS_FILE = OUTPUT.parents[2].parent / "frontend" / "src" / "lib" / "institutions.ts"
-
 
 def log(msg: str) -> None:
     print(msg, flush=True)
@@ -71,13 +69,6 @@ class Entry:
         if self.aliases:
             data["aliases"] = sorted(self.aliases)[:6]
         return data
-
-
-def legacy_ids() -> set[str]:
-    try:
-        return set(re.findall(r"'((?:br|mx|ve|co|us|ar|cl|pe|eu|intl)-[a-z0-9-]+)'", LEGACY_IDS_FILE.read_text("utf-8")))
-    except FileNotFoundError:
-        return set()
 
 
 def build() -> None:
@@ -155,7 +146,7 @@ def build() -> None:
             by_key[domain_key] = e
 
     log("4/4 Escribiendo archivos…")
-    missing_legacy = legacy_ids() - set(entries)
+    missing_legacy = LEGACY_IDS - set(entries)
     if missing_legacy:
         sys.exit(f"Faltan ids que ya usan cuentas existentes: {sorted(missing_legacy)}")
 
